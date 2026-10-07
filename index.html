@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Créateur de Map JDR</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="mode-edit">
+<header id="tabs">
+  <div class="brand">⚔ Map JDR</div>
+  <button class="tab" data-mode="edit">🛠 Éditeur</button>
+  <button class="tab" data-mode="play">🎲 Jouer la carte</button>
+</header>
+
+<div id="app">
+  <!-- ===== Éditeur : panneau gauche ===== -->
+  <aside id="left" class="edit-only">
+    <h2>Outils</h2>
+    <div class="tools">
+      <button data-tool="select">🖐 Sélection</button>
+      <button data-tool="floor">🖌 Sol</button>
+      <button data-tool="object">📦 Élément</button>
+      <button data-tool="relief">⛰ Relief</button>
+      <button data-tool="erase">🧽 Gomme</button>
+    </div>
+    <label>Taille du pinceau <input id="brush" type="range" min="1" max="5" value="1"></label>
+    <p class="muted">Relief : clic gauche monte, clic droit descend. Glisser pour étendre au même niveau.</p>
+    <h2>Presets de carte</h2>
+    <div class="grid" id="presetPal"></div>
+    <label>Ajouter le décor <input id="presetDeco" type="checkbox" checked></label>
+    <p class="muted">Recliquer sur un preset = nouvelle variante. Ctrl+Z pour annuler.</p>
+    <h2>Sols</h2>
+    <div class="grid" id="floorPal"></div>
+    <h2>Éléments</h2>
+    <div class="grid" id="objPal"></div>
+  </aside>
+
+  <!-- ===== Jouer : panneau gauche ===== -->
+  <aside id="playLeft" class="play-only">
+    <h2>Personnages</h2>
+    <div class="grid" id="heroPal"></div>
+    <h2>Monstres</h2>
+    <div class="grid" id="monsterPal"></div>
+    <p class="muted">Choisis une figurine puis clique sur la carte pour la poser (Maj+clic pour en poser plusieurs).
+      Glisse une figurine pour la déplacer, clic droit pour la retirer.</p>
+    <p class="muted">Une figurine sur une colline, une caisse, une table ou un mur est plus haute :
+      sa hauteur s'affiche au-dessus d'elle (▲).</p>
+  </aside>
+
+  <main>
+    <canvas id="cv"></canvas>
+    <div id="attackHint" class="hidden"></div>
+    <div id="help">
+      <span class="edit-only">Clic gauche : poser · Clic droit : supprimer · Molette : zoom · Clic molette / Espace+glisser : déplacer la vue · R : pivoter · Suppr : effacer · Ctrl+Z : annuler · Ctrl+D : dupliquer</span>
+      <span class="play-only">A : attaquer · Survoler/sélectionner : portées (vert = déplacement, rouge = attaque) · Glisser : déplacer une figurine · Clic droit : retirer · Flèches : déplacer d'une case · Molette : zoom · Espace+glisser : déplacer la vue · Ctrl+Z : annuler</span>
+    </div>
+  </main>
+
+  <!-- ===== Éditeur : panneau droit ===== -->
+  <aside id="right" class="edit-only">
+    <div id="selPanel" class="hidden">
+      <h2>Élément sélectionné</h2>
+      <label>Type <span id="selType"></span></label>
+      <label>Nom / lettre <input id="selLabel" type="text"></label>
+      <label>Largeur (cases) <input id="selW" type="number" min="1" max="20"></label>
+      <label>Profondeur (cases) <input id="selH" type="number" min="1" max="20"></label>
+      <label>Hauteur <input id="selE" type="range" min="0" max="6" step="0.1"></label>
+      <label>Couleur <input id="selColor" type="color"></label>
+      <div class="row">
+        <button id="btnRot">↻ Pivoter</button>
+        <button id="btnDup">⧉ Dupliquer</button>
+        <button id="btnDel">🗑 Supprimer</button>
+      </div>
+    </div>
+
+    <h2>Carte</h2>
+    <label>Colonnes <input id="mapCols" type="number" min="2" max="150"></label>
+    <label>Lignes <input id="mapRows" type="number" min="2" max="150"></label>
+    <button id="btnResize" style="width:100%">Appliquer la taille</button>
+    <label>Effet 3D <input id="depth" type="range" min="0" max="1" step="0.05"></label>
+    <label>Afficher la grille <input id="showGrid" type="checkbox"></label>
+    <div class="row">
+      <button id="btnFill">Remplir avec le sol</button>
+      <button id="btnFlat">Aplanir le relief</button>
+    </div>
+    <button id="btnFit" style="width:100%; margin-top:5px">Centrer la vue</button>
+
+    <h2>Fichier</h2>
+    <div class="row">
+      <button id="btnNew">Nouvelle carte</button>
+      <button id="btnSave">Sauvegarder</button>
+    </div>
+    <div class="row" style="margin-top:5px">
+      <button id="btnLoad">Charger</button>
+      <button id="btnPng">Exporter PNG</button>
+    </div>
+    <input id="fileIn" type="file" accept=".json" hidden>
+    <p class="muted">La carte est aussi sauvegardée automatiquement dans le navigateur.</p>
+  </aside>
+
+  <!-- ===== Jouer : panneau droit ===== -->
+  <aside id="playRight" class="play-only">
+    <div class="turn-bar">
+      <span id="turnLabel"></span>
+      <button id="btnStartCombat">⚔ Commencer le combat</button>
+      <button id="btnNextTurn">▶ Tour suivant</button>
+    </div>
+    <div class="row combat-ctl" id="combatCtl">
+      <button id="btnRestart" title="Figurines à leur position de départ, tour 1">↺ Recommencer</button>
+      <button id="btnNewCombat" title="Figurines à leur position de départ, retour en préparation">⏹ Nouveau combat</button>
+    </div>
+    <div id="unitPanel" class="hidden">
+      <h2>Figurine sélectionnée</h2>
+      <div class="unit-head"><div id="unitHead"></div><input id="unitName" type="text"></div>
+      <div class="stat">Hauteur : <b id="unitLvl"></b></div>
+      <div class="stat"><span class="dot g"></span>Déplacement : <b id="unitMoveTxt"></b></div>
+      <div class="stat"><span class="dot r"></span>Attaque : <b id="unitAtkTxt"></b></div>
+      <div class="stat muted" id="unitAbil"></div>
+      <div class="row">
+        <label>Dépl. <input id="unitMov" type="number" min="0" max="30"></label>
+        <label>Portée <input id="unitAtk" type="number" min="1" max="30"></label>
+      </div>
+      <button id="btnAttack" class="attack-btn">⚔ Attaquer <span class="muted">(A)</span></button>
+      <button id="btnUnitBack" style="width:100%; margin:4px 0 2px">↺ Retour au départ du tour</button>
+      <div id="unitRel"></div>
+      <button id="btnUnitDel" style="width:100%; margin-top:6px">🗑 Retirer de la carte</button>
+    </div>
+
+    <h2>Sur la carte</h2>
+    <div id="unitList"></div>
+    <button id="btnClearUnits" style="width:100%; margin-top:6px">Retirer toutes les figurines</button>
+
+    <h2>Journal de combat</h2>
+    <div id="combatLog"></div>
+
+    <h2>Vue</h2>
+    <div class="muted" style="margin-bottom:4px">Portées : <span class="dot g"></span>déplacement · <span class="dot r"></span>attaque</div>
+    <div class="row seg">
+      <button data-zone="sel">Sélection</button><button data-zone="all">Toutes</button><button data-zone="none">Aucune</button>
+    </div>
+    <label>Effet 3D <input id="depthPlay" type="range" min="0" max="1" step="0.05"></label>
+    <label>Afficher la grille <input id="gridPlay" type="checkbox"></label>
+    <button id="btnFitPlay" style="width:100%">Centrer la vue</button>
+
+    <h2>Caractéristiques</h2>
+    <p class="muted">Déplacement, portée, escalade, vol, nage : définis dans <b>data/caracteristiques.txt</b>.<br>
+      Source actuelle : <b id="statsSrc"></b></p>
+    <div class="row">
+      <button id="btnStatsLoad">📄 Charger un .txt</button>
+      <button id="btnStatsReset">↺ Défaut</button>
+    </div>
+    <input id="statsIn" type="file" accept=".txt" hidden>
+  </aside>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/state.js"></script>
+<script src="js/terrain.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/stats.js"></script>
+<script src="js/ranges.js"></script>
+<script src="js/anims.js"></script>
+<script src="js/render.js"></script>
+<script src="js/editor.js"></script>
+<script src="js/presets.js"></script>
+<script src="js/play.js"></script>
+<script src="js/input.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/io.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
