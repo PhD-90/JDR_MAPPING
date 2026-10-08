@@ -177,7 +177,7 @@ if (!PLAYER_VIEW) {
 // ---------- Synchronisation avec l'écran des joueurs ----------
 // La fenêtre du MJ publie la carte (sauvegarde automatique) et les événements (attaques, dégâts) via le stockage local
 function broadcast(ev) {
-  if (PLAYER_VIEW) return;
+  if (PLAYER_VIEW || SIM) return;
   try { localStorage.setItem('jdr-event', JSON.stringify({ ...ev, at: Date.now() + Math.random() })); } catch (e) {}
 }
 function initPlayerView() {

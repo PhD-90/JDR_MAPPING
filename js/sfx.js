@@ -49,6 +49,7 @@ const SOUNDS = {
 };
 
 function sfx(kind) {
+  if (SIM) return;
   if (typeof broadcast === 'function') broadcast({ type: 'sfx', kind });
   playSfx(kind);
 }

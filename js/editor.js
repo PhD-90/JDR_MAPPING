@@ -32,6 +32,7 @@ function paintLevel(cx, cy, level) { brushCells(cx, cy).forEach(([x, y]) => setL
 function removeObj(o) { map.objects = map.objects.filter(x => x !== o); if (sel === o) select(null); }
 
 function pushUndo() {
+  if (SIM) return;
   undoStack.push(JSON.stringify(map));
   if (undoStack.length > 80) undoStack.shift();
 }
@@ -42,6 +43,7 @@ function undo() {
 }
 function changed() {
   invalidateZones();
+  if (SIM) return;
   if (PLAYER_VIEW) { redraw(); return; }
   if (map.fogOn && map.fogAuto !== false) revealAroundHeroes();
   redraw(); onMapChanged(); try { localStorage.setItem('jdr-map', JSON.stringify(map)); } catch (e) {} }

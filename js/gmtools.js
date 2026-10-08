@@ -74,9 +74,8 @@ function freeSpot(x0, y0, size = 1) {
     }
   return null;
 }
-// Pose la rencontre sur la carte de combat, loin des personnages
-function placeEncounter(enc, hidden) {
-  pushUndo();
+// Pose les monstres de la rencontre sur la carte (celle du MJ ou une copie de test), loin des personnages
+function spawnEncounter(enc, hidden) {
   invalidateZones();
   const heroes = map.units.filter(u => unitKind(u) === 'hero');
   const hx = heroes.length ? heroes.reduce((s, u) => s + u.x, 0) / heroes.length : 0;
@@ -94,10 +93,27 @@ function placeEncounter(enc, hidden) {
       invalidateZones();
     }
   });
+  return placed;
+}
+function placeEncounter(enc, hidden) {
+  pushUndo();
+  const placed = spawnEncounter(enc, hidden);
   addLog(`🎲 Rencontre (${DIFFS[enc.diff].toLowerCase()}) : ${encText(enc)}${hidden ? ' — cachée aux joueurs' : ''}`, 'round');
   changed();
   setMode('play'); fit();
   return placed;
+}
+// Copie de la carte en cours (ou carte vide) avec le groupe et la rencontre, pour la simuler
+function encounterTestMap(enc) {
+  const saved = map;
+  map = simBase(saved.units.length || saved.objects.length ? saved : newMap(22, 14));
+  map.units = map.units.filter(u => unitKind(u) === 'hero');
+  if (!map.units.length) sheets.filter(s => s.camp !== 'monster' && !s.dead).forEach((s, i) => {
+    invalidateZones(); const sp = freeSpot(2 + (i % 2) * 2, 3 + (i >> 1) * 2, SPRITES[s.sprite].size); if (sp) addUnit('sheet:' + s.id, sp[0], sp[1]);
+  });
+  spawnEncounter(enc, false);
+  const test = map; map = saved; invalidateZones();
+  return test;
 }
 const encText = enc => Object.entries(enc.counts).map(([k, n]) => `${n} × ${SPRITES[k].name}`).join(', ');
 
@@ -158,11 +174,13 @@ function genQuest() {
                      'Un noble masqué', 'La guilde des aventuriers', 'Une aubergiste', 'Un nain endetté']);
   const what = pickR(['de retrouver un artefact volé', 'd\'escorter une caravane', 'd\'éliminer une bande de gobelins', 'd\'enquêter sur des disparitions',
                       'de récupérer une dette', 'd\'explorer', 'de délivrer un otage', 'de détruire un nid de monstres', 'de livrer un message secret', 'de protéger un village']);
-  const where = worldPlace(['donjon', 'ruines', 'grotte', 'tour', 'village', 'temple']);
+  const places = world ? world.locations.filter(l => ['donjon', 'ruines', 'grotte', 'tour', 'village', 'temple'].includes(l.type)) : [];
+  const loc = places.length ? pickR(places) : null, where = loc ? loc.name : worldPlace(null);
   const twist = pickR(['le commanditaire ment sur ses intentions', 'un groupe rival est déjà sur le coup', 'l\'objet est maudit', 'les « monstres » étaient pacifiques',
                        'un traître se cache parmi les alliés', 'le temps presse : 3 jours seulement', 'une tempête approche', 'la cible est un ancien allié du groupe']);
   const reward = pickR([`${(rollDie(10) + 5) * 20} pièces d'or`, 'une carte au trésor', 'la faveur d\'un noble', 'un objet magique', 'un titre de chevalier', 'des terres']);
-  return { text: `${who} demande au groupe ${what} (${where}).\nMais ${twist}.\nRécompense : ${reward}.` };
+  return { text: `${who} demande au groupe ${what} (${where}).\nMais ${twist}.\nRécompense : ${reward}.`,
+           title: `${cap1(what.replace(/^d'|^de /, ''))} — ${where}`, locId: loc ? loc.id : null, reward };
 }
 function genRumor() {
   return { text: '« ' + pickR([
@@ -212,7 +230,8 @@ function addHistory(title, text) {
   renderHistory();
 }
 function renderHistory() {
-  const el = $('gmHistory'); el.replaceChildren();
+  const el = $('gmHistory'); if (!el) return;   // onglet Outils MJ pas encore ouvert
+  el.replaceChildren();
   if (!gmHistory.length) { el.innerHTML = '<p class="muted">Les résultats des générateurs s\'affichent ici.</p>'; return; }
   gmHistory.forEach(hh => {
     const card = h('div', { className: 'gm-res' },
@@ -245,6 +264,7 @@ function buildGmTab() {
         </div>
         <div class="row"><button id="encGen" class="primary">🎲 Générer</button>
           <button id="encPlace" disabled>➕ Poser sur la carte de combat</button>
+          <button id="encTest" disabled title="Joue la rencontre 100 fois sans affichage">🧪 Tester (simulation)</button>
           <label class="inline">🙈 Cachée (embuscade) <input id="encHidden" type="checkbox"></label></div>
         <div id="encOut" class="gm-out"></div>
       </section>
@@ -256,7 +276,17 @@ function buildGmTab() {
         <div class="row"><button id="lootGen" class="primary">🎲 Générer</button><button id="lootShare" disabled>➗ Partager l'or entre les personnages</button></div>
         <pre id="lootOut" class="gm-out"></pre></section>
       <section class="gm-card"><h3>📜 Accroche de quête</h3>
-        <button id="questGen" class="primary">🎲 Générer</button><pre id="questOut" class="gm-out"></pre></section>
+        <div class="row"><button id="questGen" class="primary">🎲 Générer</button><button id="questAdd" disabled>📌 Ajouter aux quêtes</button></div>
+        <pre id="questOut" class="gm-out"></pre></section>
+      <section class="gm-card wide"><h3>🎯 Test de compétence</h3>
+        <div class="gm-form">
+          <label>Compétence <select id="chkSkill">${SKILLS.map(s => `<option value="${s.k}">${s.name} (${AB_NAME[s.ab]})</option>`).join('')}</select></label>
+          <label>DD <input id="chkDD" type="number" min="1" max="35" value="12"></label>
+          <label>Jet <select id="chkAdv"><option value="0">Normal</option><option value="1">Avantage</option><option value="-1">Désavantage</option></select></label>
+        </div>
+        <div id="chkWho" class="chk-who"></div>
+        <button id="chkRoll" class="primary">🎲 Lancer pour le groupe</button>
+        <pre id="chkOut" class="gm-out"></pre></section>
       <section class="gm-card"><h3>🗣 Rumeur</h3>
         <button id="rumorGen" class="primary">🎲 Générer</button><pre id="rumorOut" class="gm-out"></pre></section>
       <section class="gm-card"><h3>🍺 Taverne</h3>
@@ -273,9 +303,20 @@ function buildGmTab() {
   $('encGen').onclick = () => {
     lastEnc = genEncounter($('encEnv').value, +$('encDiff').value, clamp(+$('encN').value || 4, 1, 10), clamp(+$('encLvl').value || 1, 1, 20));
     const txt = `${encText(lastEnc)}\nXP : ${lastEnc.raw} (ajustée ${lastEnc.adj} pour un objectif de ${lastEnc.target})\n${ENV[lastEnc.env].name} · difficulté ${DIFFS[lastEnc.diff].toLowerCase()} · ${lastEnc.n} personnage(s) niv. ${lastEnc.lvl}`;
-    out('encOut', txt); $('encPlace').disabled = false; addHistory('⚔ Rencontre', txt);
+    out('encOut', txt); $('encPlace').disabled = false; $('encTest').disabled = false; addHistory('⚔ Rencontre', txt);
   };
   $('encPlace').onclick = () => { if (lastEnc) placeEncounter(lastEnc, $('encHidden').checked); };
+  $('encTest').onclick = () => { if (lastEnc) openSim(encounterTestMap(lastEnc), `Tester la rencontre : ${encText(lastEnc)}`); };
+  let lastQuest = null;
+  $('questAdd').onclick = () => { if (!lastQuest) return; addQuest(lastQuest); $('questAdd').disabled = true; out('questOut', lastQuest.text + '\n✔ Ajoutée au journal de quêtes (onglet Monde).'); };
+  $('chkRoll').onclick = () => {
+    const who = [...document.querySelectorAll('#chkWho input:checked')].map(i => getSheet(i.value)).filter(Boolean);
+    if (!who.length) return;
+    const k = $('chkSkill').value, dd = +$('chkDD').value || 10, g = groupCheck(who, k, dd, +$('chkAdv').value);
+    const txt = g.res.map(r => `${r.ok ? '✔' : '✖'} ${r.who.name} : ${r.d}${+$('chkAdv').value ? ` [${r.a},${r.b}]` : ''} ${fmtMod(r.bonus)} = ${r.tot}`).join('\n') +
+      `\n→ ${g.ok ? 'Réussite' : 'Échec'} du groupe (${g.res.filter(r => r.ok).length}/${g.res.length}) — ${skillOf(k).name} DD ${dd}`;
+    out('chkOut', txt); addHistory(`🎯 ${skillOf(k).name} DD ${dd}`, txt); sfx('dice');
+  };
   $('npcGen').onclick = () => { lastNpc = genNPC(); out('npcOut', lastNpc.text); $('npcSheet').disabled = false; addHistory('🧑 PNJ', lastNpc.text); };
   $('npcSheet').onclick = () => {
     if (!lastNpc) return;
@@ -290,7 +331,7 @@ function buildGmTab() {
     heroes.forEach(s => { s.gold = (s.gold || 0) + share; }); saveSheets();
     $('lootShare').disabled = true; out('lootOut', lastLoot.text + `\n✔ ${share} po ajoutées à chaque personnage (${heroes.map(s => s.name).join(', ')}).`);
   };
-  $('questGen').onclick = () => { const q = genQuest(); out('questOut', q.text); addHistory('📜 Quête', q.text); };
+  $('questGen').onclick = () => { const q = genQuest(); lastQuest = q; $('questAdd').disabled = false; out('questOut', q.text); addHistory('📜 Quête', q.text); };
   $('rumorGen').onclick = () => { const r = genRumor(); const t = `${r.text}\n(${r.true ? 'vraie' : 'fausse'} — à garder pour le MJ)`; out('rumorOut', t); addHistory('🗣 Rumeur', t); };
   $('tavGen').onclick = () => { const t = genTavern(); out('tavOut', t.text); addHistory('🍺 Taverne', t.text); };
   $('wxGen').onclick = () => { const w = genWeather($('wxClim').value, $('wxSeason').value); out('wxOut', w.text); addHistory('🌦 Météo', w.text); };
@@ -331,4 +372,12 @@ function enterGm() {
   if (!$('encLvl').value) $('encLvl').value = p.lvl;
   if (!$('lootLvl').value) $('lootLvl').value = p.lvl;
   $('encEnv').value = currentEnv();
+  // personnages pour le test de compétence (cochés par défaut), avec leur perception passive
+  const who = $('chkWho'); who.replaceChildren();
+  sheets.filter(s => s.camp !== 'monster').forEach(s => {
+    const l = document.createElement('label'); l.className = 'chk-item';
+    l.innerHTML = `<input type="checkbox" value="${s.id}" checked> `; l.append(spriteIcon(s.sprite, 20), ` ${s.name} `);
+    const pp = document.createElement('span'); pp.className = 'muted'; pp.textContent = `👁 ${passivePerception(s)}`; pp.title = 'Perception passive'; l.append(pp);
+    who.appendChild(l);
+  });
 }

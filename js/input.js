@@ -79,7 +79,10 @@ window.addEventListener('mousemove', e => {
     changed(); syncSelUI();
   }
 });
-window.addEventListener('mouseup', () => { drag = null; redraw(); });
+window.addEventListener('mouseup', () => {
+  if (drag && drag.mode === 'unit' && mode === 'play') playDrop(playSel, drag.from);
+  drag = null; redraw();
+});
 cv.addEventListener('mouseleave', () => { hover = null; redraw(); });
 
 cv.addEventListener('wheel', e => {

@@ -31,7 +31,7 @@ function initChars() {
     sheets = raw ? JSON.parse(raw) : exampleSheets();
     if (!raw) saveSheets();
   } catch (e) { sheets = exampleSheets(); }
-  sheets.forEach(s => { s.over ||= {}; s.base ||= newSheet().base; });
+  sheets.forEach(s => { s.over ||= {}; s.base ||= newSheet().base; s.items ||= { potion: 1, ration: 5, torche: 2 }; });
   renderSheetPal();
 }
 
@@ -125,10 +125,22 @@ function buildSheetForm() {
       <label class="dcard"><span class="dname">💰 Pièces d'or</span><input id="shGold" type="number" min="0"><span class="dcalc"></span></label>
       <div class="dcard static prog-actions">
         <button id="shLevelUp" class="primary">⬆ Monter de niveau</button>
-        <button id="shRest">🛏 Repos long</button>
+        <div class="row"><button id="shShort" title="1 heure : dés de vie et capacités de repos court">☕ Repos court</button>
+          <button id="shRest" title="PV, capacités et dés de vie">🛏 Repos long</button></div>
       </div>
     </div>
     <div class="xpbar"><i id="shXpBar"></i></div>
+    <div id="shRestOut" class="muted"></div>
+
+    <h3>Capacités <span class="muted">utilisations restantes · 🌙 repos long · ☕ repos court · ⟳ par tour</span></h3>
+    <div id="shActs" class="sh-acts"></div>
+    <div id="shHd" class="muted"></div>
+
+    <h3>Compétences <span class="muted">cochées = maîtrisées · perception passive <b id="shPP"></b></span></h3>
+    <div id="shSkills" class="sh-skills"></div>
+
+    <h3>Objets <span class="muted">utilisables en combat, achetés au marché des villes (onglet Monde)</span></h3>
+    <div id="shItems" class="sh-items"></div>
 
     <h3>Équipement et notes</h3>
     <label class="wide">Arme / attaque principale <input id="shWeapon" type="text"></label>
@@ -171,11 +183,17 @@ function buildSheetForm() {
   on('shHp', 'input', e => edit(s => { s.hpCur = e.target.value === '' ? null : clamp(Math.floor(+e.target.value), 0, +sheetDerived(s).val.pv); }, false));
   on('shLevelUp', 'click', () => edit(s => {
     if (!canLevelUp(s)) return;
-    const before = +sheetDerived(s).val.pv; s.level++;
+    const before = +sheetDerived(s).val.pv, oldActs = unitActions(sheetUnit(s));
+    s.level++; s.hd = (s.hd ?? s.level - 1) + 1;
     const gain = +sheetDerived(s).val.pv - before;
     s.hpCur = s.hpCur === null || s.hpCur === undefined ? null : s.hpCur + gain;
+    const fresh = unitActions(sheetUnit(s)).filter(k => !oldActs.includes(k)).map(k => `${ACTIONS[k].icon} ${ACTIONS[k].name}`);
+    const extra = MARTIAL.includes(s.cls) && s.level === 5 ? ['⚔ Attaque supplémentaire (2 attaques par action)'] : [];
+    $('shRestOut').textContent = `⬆ Niveau ${s.level} : +${gain} PV max` + (fresh.length || extra.length ? ` · Nouveau : ${[...fresh, ...extra].join(', ')}` : '');
+    sfx('levelup');
   }));
-  on('shRest', 'click', () => edit(s => { s.hpCur = null; }));
+  on('shRest', 'click', () => edit(s => { longRest(s); $('shRestOut').textContent = `🛏 ${s.name} récupère ses PV, ses capacités et des dés de vie.`; }));
+  on('shShort', 'click', () => edit(s => { $('shRestOut').textContent = '☕ ' + shortRest(s); }));
 
   // caractéristiques : boutons − / +
   $('shAbilities').addEventListener('click', e => {
@@ -254,6 +272,40 @@ function fillSheetForm(full = true) {
   $('shLevelUp').classList.toggle('hidden', !hero); $('shLevelUp').disabled = !canLevelUp(s);
   $('shLevelUp').textContent = canLevelUp(s) ? `⬆ Passer niveau ${s.level + 1}` : '⬆ Monter de niveau';
   $('shHpInfo').textContent = `sur ${maxHp}` + ((s.hpCur ?? maxHp) < maxHp ? ' · blessé' : '');
+  // capacités : utilisations restantes (les verrouillées indiquent le niveau requis)
+  const su = sheetUnit(s), acts = $('shActs'); acts.replaceChildren();
+  allActions(su).forEach(k => {
+    const A = ACTIONS[k], locked = (A.minLvl || 1) > s.level, max = usesMax(su, k), left = s.uses?.[k] ?? max;
+    const rest = { long: '🌙', court: '☕', tour: '⟳', recharge: '🎲' }[A.rest] || '';
+    const el = document.createElement('div'); el.className = 'sh-act' + (locked ? ' locked' : ''); el.title = A.desc;
+    el.textContent = locked ? `🔒 ${A.name} — niveau ${A.minLvl}` : `${A.icon} ${A.name} ${rest} ${left}/${max}${A.cost === 'bonus' ? ' · action bonus' : ''}`;
+    acts.appendChild(el);
+  });
+  if (MARTIAL.includes(s.cls)) acts.appendChild(Object.assign(document.createElement('div'), { className: 'sh-act' + (s.level < 5 ? ' locked' : ''),
+    textContent: s.level >= 5 ? '⚔ Attaque supplémentaire : 2 attaques par action' : '🔒 Attaque supplémentaire — niveau 5' }));
+  $('shHd').textContent = `Dés de vie : ${s.hd ?? s.level} / ${s.level} (d${d.cls.de}) · sauvegardes maîtrisées : ${(SAVE_PROF[s.cls] || []).map(k => AB_NAME[k]).join(', ')}`;
+  // compétences
+  const known = s.skills || CLASS_SKILLS[s.cls] || [], sk = $('shSkills'); sk.replaceChildren();
+  SKILLS.forEach(k => {
+    const l = document.createElement('label'); l.className = 'sh-skill' + (known.includes(k.k) ? ' on' : '');
+    const cb = Object.assign(document.createElement('input'), { type: 'checkbox', checked: known.includes(k.k) });
+    cb.onchange = () => edit(x => { const cur = new Set(x.skills || CLASS_SKILLS[x.cls] || []); cb.checked ? cur.add(k.k) : cur.delete(k.k); x.skills = [...cur]; });
+    l.append(cb, ` ${k.name} `, Object.assign(document.createElement('b'), { textContent: fmtMod(skillBonus(s, k.k)) }),
+      Object.assign(document.createElement('span'), { className: 'muted', textContent: ` ${AB_NAME[k.ab]}` }));
+    sk.appendChild(l);
+  });
+  $('shPP').textContent = passivePerception(s);
+  // objets
+  const it = $('shItems'); it.replaceChildren();
+  Object.entries(ITEMS).forEach(([k, I]) => {
+    const n = (s.items || {})[k] || 0, row = document.createElement('div'); row.className = 'sh-item' + (n ? ' on' : '');
+    const minus = Object.assign(document.createElement('button'), { className: 'mini', textContent: '−' });
+    const plus = Object.assign(document.createElement('button'), { className: 'mini', textContent: '+' });
+    minus.onclick = () => edit(x => { x.items ||= {}; x.items[k] = Math.max(0, (x.items[k] || 0) - 1); });
+    plus.onclick = () => edit(x => { x.items ||= {}; x.items[k] = (x.items[k] || 0) + 1; });
+    row.title = I.desc; row.append(`${I.icon} ${I.name}`, minus, Object.assign(document.createElement('b'), { textContent: n }), plus);
+    it.appendChild(row);
+  });
   $('shDesc').textContent = `${d.race.desc} ${d.cls.desc} Dé de vie d${d.cls.de}, attaque sur ${d.cls.atk.toUpperCase()}.`;
   const pc = $('shPortrait').getContext('2d'); pc.clearRect(0, 0, 16, 16); pc.drawImage(spriteCanvas(s.sprite), 0, 0);
   document.querySelectorAll('#shSprites button').forEach(b => b.classList.toggle('on', b.dataset.spr === s.sprite));

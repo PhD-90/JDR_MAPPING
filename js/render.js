@@ -329,6 +329,7 @@ function renderMap(c, ui) {
 }
 
 function draw() {
+  if (SIM) return;   // pendant une simulation, la carte affichée n'est pas celle du MJ
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = '#16181d'; ctx.fillRect(0, 0, cv.width, cv.height);
   const sh = screenShake();   // tremblement lors des attaques puissantes

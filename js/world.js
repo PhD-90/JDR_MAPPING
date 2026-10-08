@@ -164,7 +164,12 @@ function travelTo(target, targetLoc = null) {
   const days = Math.ceil(info.days);
   world.journal.unshift({ day: world.day, text: `${list.map(s => s.name).join(', ')} : ${fromName} → ${toName}, ${info.km} km en ${fmtLevel(info.days)} jour${info.days > 1 ? 's' : ''}` +
     (info.terrain.length ? ` (${info.terrain.join(', ')}${info.sea ? ', traversée en bateau' : ''})` : info.sea ? ' (en bateau)' : '') });
-  world.day += days;
+  // vivres et événements du voyage (rencontre, découverte, voyageur, météo)
+  const ev = travelEvents(list, from, target, days);
+  if (ev.stop) target = ev.stop;   // une rencontre arrête le groupe en chemin
+  ev.out.forEach(t => world.journal.unshift({ day: world.day + ev.days, text: t }));
+  world.day += ev.days;
+  if (world.pending) setTimeout(() => { wsel = { loc: null, ids: new Set() }; renderWorldPanels(); }, 50);
   const starts = {}, ends = {};
   list.forEach((s, i) => {
     starts[s.id] = { ...world.pos[s.id] };
@@ -254,6 +259,8 @@ function drawWorld() {
       c.strokeText(l.name, x, y + s * 0.55); c.fillText(l.name, x, y + s * 0.55);
     }
   });
+
+  drawQuestMarks(c);
 
   // personnages
   ensurePositions();
@@ -561,6 +568,7 @@ function locPanel(l) {
     h('button', { className: 'wide-btn', disabled: !nSel, textContent: nSel ? `🚶 Envoyer la sélection ici (${nSel})` : '🚶 Sélectionne des personnages pour les envoyer ici',
       on: { click: () => { const l2 = l; travelTo({ x: l2.x, y: l2.y }, l2); } } }),
     h('h2', { textContent: '⚔ Carte de combat' }), battle,
+    shopSection(l),
     h('button', { className: 'wide-btn danger', style: 'margin-top:14px', textContent: '🗑 Supprimer ce lieu',
       on: { click: () => { if (confirm(`Supprimer « ${l.name} » ?`)) deleteLoc(l); } } }));
 }
@@ -584,16 +592,28 @@ function charPanel(list) {
 }
 
 function worldInfoPanel() {
-  const heroes = sheets.filter(s => s.camp !== 'monster');
+  const heroes = sheets.filter(s => s.camp !== 'monster'), pe = world.pending;
   return h('div', {},
+    pe ? h('div', { className: 'pending' },
+      h('b', { textContent: `⚔ Rencontre en chemin (jour ${pe.day})` }),
+      h('div', { textContent: encText(pe.enc) }),
+      h('div', { className: 'row' },
+        h('button', { className: 'primary', textContent: '⚔ Préparer le combat', on: { click: fightPending } }),
+        h('button', { textContent: '🧪 Simuler', on: { click: () => {
+          const saved = map; map = newMap(22, 14); applyPreset(BIOME_PRESET[pe.biome] || 'plain'); map.turn = 0;
+          pe.ids.map(getSheet).filter(Boolean).forEach((s, i) => { invalidateZones(); const sp = freeSpot(2 + (i % 2) * 2, 4 + (i >> 1) * 2); if (sp) addUnit('sheet:' + s.id, sp[0], sp[1]); });
+          invalidateZones(); spawnEncounter(pe.enc, false); const test = map; map = saved; invalidateZones();
+          openSim(test, `Simuler la rencontre : ${encText(pe.enc)}`); } } }),
+        h('button', { className: 'mini', textContent: '✖ Éviter', on: { click: () => { world.journal.unshift({ day: world.day, text: '🏃 Le groupe évite la rencontre.' }); world.pending = null; saveWorld(); renderWorldPanels(); wredraw(); } } }))) : null,
     h('h2', { textContent: 'Le groupe' }),
     h('div', { className: 'here' }, heroes.map(s => h('button', { className: 'here-tok', title: s.name, on: { click: () => {
       wsel = { loc: null, ids: new Set([s.id]) }; const p = world.pos[s.id]; centerOn(p.x, p.y); renderWorldPanels(); } } }, spriteIcon(s.sprite, 28), s.name))),
     h('button', { className: 'wide-btn', textContent: '👥 Sélectionner tout le groupe', on: { click: () => {
       wsel = { loc: null, ids: new Set(heroes.map(s => s.id)) }; renderWorldPanels(); wredraw(); } } }),
     h('h2', { textContent: 'Royaumes' }),
-    h('div', {}, world.regions.map((r, i) => h('button', { className: 'loc-row', on: { click: () => centerOn(r.x, r.y, 1.4) } },
-      h('span', { className: 'swatch', style: `background:hsl(${r.hue},55%,45%)` }), r.name))),
+    h('div', {}, world.regions.map((r, i) => h('div', { className: 'loc-row reg-row', on: { click: () => centerOn(r.x, r.y, 1.4) } },
+      h('span', { className: 'swatch', style: `background:hsl(${r.hue},55%,45%)` }), h('span', { className: 'ellip', textContent: r.name }), repControls(r)))),
+    questPanel(),
     h('h2', { textContent: 'Journal de voyage' }),
     world.journal.length ? h('div', { className: 'wjournal' }, world.journal.slice(0, 40).map(j =>
       h('div', {}, h('b', { textContent: `Jour ${j.day} · ` }), j.text)))
@@ -604,10 +624,16 @@ function worldInfoPanel() {
 $('wName').addEventListener('input', e => { world.name = e.target.value; saveWorld(); });
 $('wNext').onclick = () => { world.day++; world.journal.unshift({ day: world.day, text: 'Une journée passe.' }); saveWorld(); renderWorldPanels(); };
 $('wRest').onclick = () => {
-  const heroes = sheets.filter(s => s.camp !== 'monster');
-  heroes.forEach(s => { s.hpCur = sheetDerived(s).val.pv; });
+  const heroes = sheets.filter(s => s.camp !== 'monster' && !s.dead);
+  heroes.forEach(longRest);
   saveSheets(); world.day++;
-  world.journal.unshift({ day: world.day, text: `🛏 Repos long : ${heroes.map(s => s.name).join(', ')} récupèrent tous leurs PV.` });
+  world.journal.unshift({ day: world.day, text: `🛏 Repos long : ${heroes.map(s => s.name).join(', ')} récupèrent leurs PV, leurs capacités et des dés de vie.` });
+  saveWorld(); renderWorldPanels();
+};
+$('wShort').onclick = () => {
+  const heroes = sheets.filter(s => s.camp !== 'monster' && !s.dead), txt = heroes.map(shortRest).join(' · ');
+  saveSheets();
+  world.journal.unshift({ day: world.day, text: `☕ Repos court : ${txt}` });
   saveWorld(); renderWorldPanels();
 };
 $('wGen').onclick = () => {

@@ -41,7 +41,10 @@ function addUnit(key, cx, cy) {
 function applySheet(u, sheet) {
   const v = sheetDerived(sheet).val;
   const dd = sheetDerived(sheet);
-  Object.assign(u, { cls: sheet.cls, lvl: sheet.level, mod: dd.mod[dd.cls.prio[0]] });
+  Object.assign(u, { cls: sheet.cls, lvl: sheet.level, mod: dd.mod[dd.cls.prio[0]], ab: { ...dd.score }, prof: dd.prof,
+    saveProf: SAVE_PROF[sheet.cls] || [], dmgType: dd.cls.dmgType || '', skills: sheet.skills || CLASS_SKILLS[sheet.cls] || [],
+    items: { ...(sheet.items || {}) }, resist: [], immun: [], vuln: [], multi: 1, traits: [] });
+  if (sheet.uses) u.uses = { ...sheet.uses };
   Object.assign(u, { sheetId: sheet.id, camp: sheet.camp, sprite: sheet.sprite,
     hpMax: Math.max(1, +v.pv), ca: +v.ca, toucher: +v.toucher, degats: String(v.degats), init: +v.init,
     mov: +v.deplacement, atk: +v.portee, saut: +v.saut, nage: !!v.nage, vol: !!v.vol });
@@ -223,7 +226,7 @@ function playMouseDown(e, p) {
   }
   if (u) {
     pushUndo(); selectUnit(u);
-    drag = { mode: 'unit', ox: p.cx - u.x, oy: p.cy - u.y };
+    drag = { mode: 'unit', ox: p.cx - u.x, oy: p.cy - u.y, from: { x: u.x, y: u.y } };
     return;
   }
   if (pending && inMap(p.cx, p.cy)) {
@@ -244,6 +247,13 @@ function playMouseMove(p) {
 }
 // En préparation, la position de départ suit la figurine (on peut la placer librement)
 function followSetup(u) { if (!map.turn) { u.sx = u.ox = u.x; u.sy = u.oy = u.y; } }
+// Fin d'un déplacement (souris ou flèches) : règles strictes, attaques d'opportunité, pièges
+function playDrop(u, from) {
+  if (!u || !from || (u.x === from.x && u.y === from.y)) return;
+  const why = moveRefusal(u);
+  if (why) { u.x = from.x; u.y = from.y; popText(u, why, '#ff9a8a', 13); changed(); syncPlayUI(); return; }
+  afterMove(u, from); changed(); syncPlayUI();
+}
 function playKey(e) {
   if ((e.key === 'Delete' || e.key === 'Backspace') && playSel) { pushUndo(); removeUnit(playSel); changed(); }
   else if (e.key === 'Escape') { if (actionMode) cancelAction(); else if (attackMode) setAttackMode(false); else if (fogTool || markTool) { setFogTool(null); setMarkTool(null); } else { setPending(null); selectUnit(null); } }
@@ -251,10 +261,10 @@ function playKey(e) {
   else if ((e.key === 'Enter' || e.key.toLowerCase() === 'n') && map.turn > 0 && e.target.tagName !== 'BUTTON') { e.preventDefault(); endTurn(); }
   else if (playSel && e.key.startsWith('Arrow')) {
     e.preventDefault(); pushUndo();
-    const d = { ArrowLeft:[-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1] }[e.key];
+    const d = { ArrowLeft:[-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1] }[e.key], from = { x: playSel.x, y: playSel.y };
     playSel.x = clamp(playSel.x + d[0], 0, map.cols - playSel.size);
     playSel.y = clamp(playSel.y + d[1], 0, map.rows - playSel.size);
-    followSetup(playSel); changed(); syncPlayUI();
+    followSetup(playSel); invalidateZones(); playDrop(playSel, from); changed(); syncPlayUI();
   }
 }
 
@@ -282,6 +292,7 @@ function renderSheetPal() {
 }
 
 function syncPlayUI() {
+  if (SIM) return;
   const u = playSel;
   $('unitPanel').classList.toggle('hidden', !u);
   if (u) {
@@ -304,16 +315,41 @@ function syncPlayUI() {
     if (document.activeElement !== $('unitMov')) $('unitMov').value = u.mov ?? st.deplacement;
     if (document.activeElement !== $('unitAtk')) $('unitAtk').value = st.attaque;
     $('btnAttack').disabled = isKO(u);
-    // capacités et sorts
+    // économie d'actions du tour
+    const a = u.act || { action: 1, bonus: 1, reaction: 1, attacks: 0 };
+    const dot = (n, label) => `<span class="eco ${n > 0 ? 'on' : ''}">${n > 0 ? '●' : '○'} ${label}</span>`;
+    $('uEco').innerHTML = dot(a.action, 'Action') + dot(a.bonus, 'Bonus') + dot(a.reaction, 'Réaction') +
+      (a.attacks > 0 ? `<span class="eco on">⚔ ${a.attacks} attaque(s)</span>` : '') + (a.dash ? '<span class="eco on">🏃 Fonce</span>' : '') +
+      (a.disengage ? '<span class="eco on">🚪 Désengagé</span>' : '') + (a.over ? '<span class="eco warn" title="Le MJ a dépassé le nombre d\'actions">✋ MJ</span>' : '');
+    // contrôle et rôle
+    $('uCtrl').value = u.ctrl || ''; $('uRole').value = u.role || '';
+    $('uRoleAuto').textContent = `(auto : ${ROLE_NAME[roleOf({ ...u, role: '' })]})`;
+    // capacités (verrouillées sous le niveau requis)
     const acts = $('uActions'); acts.replaceChildren();
-    unitActions(u).forEach(k => {
-      const A = ACTIONS[k], left = usesLeft(u, k);
+    allActions(u).forEach(k => {
+      const A = ACTIONS[k], locked = (A.minLvl || 1) > (u.lvl || 1), left = locked ? 0 : usesLeft(u, k);
       const b = document.createElement('button'); b.className = 'act-btn' + (actionMode && actionMode.k === k && actionMode.u === u ? ' on' : '');
-      b.textContent = `${A.icon} ${A.name} (${left}/${A.uses})`; b.title = A.desc + ' — utilisations par combat';
-      b.disabled = isKO(u) || left <= 0;
+      const rest = { long: '🌙', court: '☕', tour: '⟳', recharge: '🎲' }[A.rest] || '';
+      b.textContent = locked ? `🔒 ${A.name} (niveau ${A.minLvl})` : `${A.icon} ${A.name} (${left}/${usesMax(u, k)}) ${rest}${A.cost === 'bonus' ? ' · bonus' : ''}`;
+      b.title = A.desc + ({ long: ' — récupéré au repos long', court: ' — récupéré au repos court', tour: ' — une fois par tour', recharge: ' — se recharge sur 5-6' }[A.rest] || '');
+      b.disabled = locked || isKO(u) || left <= 0;
       b.onclick = () => actionMode && actionMode.k === k ? cancelAction() : useAction(u, k);
       acts.appendChild(b);
     });
+    // actions standard
+    const std = $('uStd'); std.replaceChildren();
+    Object.entries(STD_ACTIONS).forEach(([k, A]) => {
+      const b = document.createElement('button'); b.className = 'std-btn'; b.textContent = `${A.icon} ${A.name}`; b.title = A.desc;
+      b.disabled = isKO(u); b.onclick = () => useStd(u, k); std.appendChild(b);
+    });
+    // objets
+    const its = $('uItems'); its.replaceChildren();
+    usableItems(u).forEach(k => {
+      const I = ITEMS[k], b = document.createElement('button'); b.className = 'std-btn';
+      b.textContent = `${I.icon} ${I.name} ×${itemCount(u, k)}`; b.title = I.desc; b.disabled = isKO(u);
+      b.onclick = () => useItem(u, k); its.appendChild(b);
+    });
+    $('uItemsBox').classList.toggle('hidden', !usableItems(u).length);
     // comparaison avec le camp adverse
     const foes = map.units.filter(o => unitKind(o) !== unitKind(u));
     const rel = $('unitRel'); rel.replaceChildren();
@@ -391,3 +427,7 @@ $('btnStatsReset').onclick = () => {
 $('depthPlay').oninput = e => { map.depth = +e.target.value; syncMapUI(); changed(); };
 $('gridPlay').onchange = e => { map.grid = e.target.checked; syncMapUI(); changed(); };
 $('btnFitPlay').onclick = () => fit();
+
+// Contrôle de la figurine (MJ / IA) et rôle utilisé par l'IA
+$('uCtrl').onchange = e => { const u = playSel; if (!u) return; pushUndo(); if (e.target.value) u.ctrl = e.target.value; else delete u.ctrl; changed(); syncPlayUI(); maybeAuto(); };
+$('uRole').onchange = e => { const u = playSel; if (!u) return; pushUndo(); if (e.target.value) u.role = e.target.value; else delete u.role; changed(); syncPlayUI(); };

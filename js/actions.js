@@ -1,42 +1,61 @@
-// Capacités et sorts des figurines (selon la classe), ciblage sur la carte, et tour automatique des monstres.
+// Capacités et sorts des figurines (selon la classe et le niveau), actions standard, ciblage sur la carte.
 //   type : 'self_heal' | 'self_buff' (sur soi) · 'heal' (un allié) · 'attack' (attaque spéciale) · 'missile' (touche toujours)
-//          'area' (zone, jet de sauvegarde de DEX : moitié des dégâts si réussi) · 'buff' (alliés dans une zone)
-//   uses : utilisations par combat
+//          'area' (zone, jet de sauvegarde : moitié des dégâts si réussi) · 'buff' (alliés dans une zone)
+//   cost : 'action' | 'bonus'      rest : 'long' | 'court' (repos) · 'tour' (1 fois par tour) · 'recharge' (5-6 sur 1d6)
+//   uses(u) : utilisations maximum · minLvl : niveau requis · conc : concentration (dur en rounds)
+// Les fiches de personnage gardent leurs utilisations restantes entre les combats (récupérées au repos) ;
+// les figurines de base et les monstres les récupèrent à chaque combat.
 
 const ACTIONS = {
-  second_souffle: { name: 'Second souffle', icon: '💪', type: 'self_heal', dice: u => `1d10+${u.lvl || 1}`, uses: 1, sound: 'heal',
-                    desc: 'Récupère 1d10 + niveau PV.' },
-  rage:           { name: 'Rage', icon: '😡', type: 'self_buff', cond: 'rage', uses: 2, sound: 'crit',
-                    desc: '+2 aux dégâts jusqu\'à la fin du combat.' },
-  imposition:     { name: 'Imposition des mains', icon: '🙌', type: 'heal', range: 1, dice: u => String(5 * (u.lvl || 1)), uses: 1, sound: 'heal',
-                    desc: 'Soigne 5 × niveau PV à un allié au contact.' },
-  volee:          { name: 'Volée de flèches', icon: '🏹', type: 'area', range: 8, radius: 1, dice: u => `1d8+${u.mod ?? 3}`, uses: 1,
-                    fx: 'arrows', color: '#ffe9a8', sound: 'arrows', desc: 'Pluie de flèches sur une zone de 3×3 cases (sauvegarde de DEX pour moitié).' },
-  sournoise:      { name: 'Attaque sournoise', icon: '🗡', type: 'attack', bonus: u => `${Math.ceil((u.lvl || 1) / 2)}d6`, uses: 1,
-                    desc: 'Attaque avec des dés de dégâts en plus.' },
-  projectile:     { name: 'Projectile magique', icon: '✨', type: 'missile', range: 8, darts: 3, dice: () => '1d4+1', uses: 3, sound: 'magic',
-                    desc: '3 traits qui touchent toujours (1d4+1 chacun).' },
-  boule_feu:      { name: 'Boule de feu', icon: '🔥', type: 'area', range: 8, radius: 2, dice: u => `${2 + Math.ceil((u.lvl || 1) / 2)}d6`, uses: 2,
-                    fx: 'blast', color: '#ff8a2a', sound: 'fire', desc: 'Explosion de 2 cases de rayon (sauvegarde de DEX pour moitié). Attention aux alliés !' },
-  soins:          { name: 'Soins', icon: '💚', type: 'heal', range: 1, dice: u => `1d8+${u.mod ?? 3}`, uses: 2, sound: 'heal',
-                    desc: 'Soigne un allié au contact.' },
-  mot_guerison:   { name: 'Mot de guérison', icon: '🗣', type: 'heal', range: 6, dice: u => `1d4+${u.mod ?? 3}`, uses: 2, sound: 'heal',
-                    desc: 'Soigne un allié à distance (6 cases).' },
-  benediction:    { name: 'Bénédiction', icon: '🌟', type: 'buff', range: 6, radius: 2, cond: 'beni', uses: 1, fx: 'holy', color: '#ffd84a', sound: 'bless',
-                    desc: 'Les alliés dans la zone gagnent +1d4 aux jets d\'attaque.' },
-  souffle:        { name: 'Souffle de feu', icon: '🐉', type: 'area', range: 4, radius: 2, dice: () => '6d6', dd: 14, uses: 1,
-                    fx: 'blast', color: '#ff6a1f', sound: 'fire', desc: 'Cône de flammes (sauvegarde de DEX DD 14 pour moitié).' },
+  second_souffle: { name: 'Second souffle', icon: '💪', type: 'self_heal', cost: 'bonus', rest: 'court', uses: () => 1, sound: 'heal',
+                    dice: u => `1d10+${u.lvl || 1}`, desc: 'Récupère 1d10 + niveau PV (action bonus, repos court).' },
+  rage:           { name: 'Rage', icon: '😡', type: 'self_buff', cost: 'bonus', rest: 'long', uses: u => (u.lvl || 1) >= 3 ? 3 : 2, cond: 'rage', dur: 10, sound: 'crit',
+                    desc: '+2 aux dégâts et résistance aux dégâts physiques pendant 10 rounds (action bonus).' },
+  imposition:     { name: 'Imposition des mains', icon: '🙌', type: 'heal', cost: 'action', rest: 'long', uses: () => 1, range: 1, sound: 'heal',
+                    dice: u => String(5 * (u.lvl || 1)), desc: 'Soigne 5 × niveau PV à un allié au contact.' },
+  volee:          { name: 'Volée de flèches', icon: '🏹', type: 'area', cost: 'action', rest: 'court', uses: () => 1, minLvl: 2, range: 8, radius: 1, save: 'dex',
+                    dice: u => `1d8+${u.mod ?? 3}`, dmgType: 'perforant', fx: 'arrows', color: '#ffe9a8', sound: 'arrows',
+                    desc: 'Zone de 3×3 cases (sauvegarde de DEX pour moitié), repos court.' },
+  sournoise:      { name: 'Attaque sournoise', icon: '🗡', type: 'attack', cost: 'action', rest: 'tour', uses: () => 1,
+                    bonus: u => `${Math.ceil((u.lvl || 1) / 2)}d6`, desc: 'Attaque avec des d6 en plus, une fois par tour, si un allié est au contact de la cible ou avec avantage.' },
+  projectile:     { name: 'Projectile magique', icon: '✨', type: 'missile', cost: 'action', rest: 'long', uses: u => 2 + Math.floor((u.lvl || 1) / 2), range: 8, darts: 3,
+                    dice: () => '1d4+1', dmgType: 'force', sound: 'magic', desc: '3 traits qui touchent toujours (1d4+1 de force chacun).' },
+  boule_feu:      { name: 'Boule de feu', icon: '🔥', type: 'area', cost: 'action', rest: 'long', uses: u => (u.lvl || 1) >= 5 ? 2 : 1, minLvl: 3, range: 8, radius: 2, save: 'dex',
+                    dice: u => `${2 + Math.ceil((u.lvl || 1) / 2)}d6`, dmgType: 'feu', fx: 'blast', color: '#ff8a2a', sound: 'fire',
+                    desc: 'Explosion de 2 cases de rayon (sauvegarde de DEX pour moitié). Attention aux alliés !' },
+  soins:          { name: 'Soins', icon: '💚', type: 'heal', cost: 'action', rest: 'long', uses: u => 1 + Math.ceil((u.lvl || 1) / 2), range: 1, sound: 'heal',
+                    dice: u => `1d8+${u.mod ?? 3}`, desc: 'Soigne 1d8 + mod. à un allié au contact.' },
+  mot_guerison:   { name: 'Mot de guérison', icon: '🗣', type: 'heal', cost: 'bonus', rest: 'long', uses: u => 1 + Math.floor((u.lvl || 1) / 2), range: 6, sound: 'heal',
+                    dice: u => `1d4+${u.mod ?? 3}`, desc: 'Soigne 1d4 + mod. à un allié à 6 cases (action bonus).' },
+  benediction:    { name: 'Bénédiction', icon: '🌟', type: 'buff', cost: 'action', rest: 'long', uses: () => 1, range: 6, radius: 2, cond: 'beni', conc: true, dur: 10,
+                    fx: 'holy', color: '#ffd84a', sound: 'bless', desc: '+1d4 aux attaques des alliés dans la zone (concentration, 10 rounds).' },
+  souffle:        { name: 'Souffle de feu', icon: '🐉', type: 'area', cost: 'action', rest: 'recharge', uses: () => 1, range: 4, radius: 2, save: 'dex', dd: 14,
+                    dice: () => '6d6', dmgType: 'feu', fx: 'blast', color: '#ff6a1f', sound: 'fire', desc: 'Flammes (DEX DD 14 pour moitié), se recharge sur 5-6.' },
 };
 const CLASS_ACTIONS = { guerrier: ['second_souffle'], barbare: ['rage'], paladin: ['imposition', 'benediction'], rodeur: ['volee'],
                         voleur: ['sournoise'], mage: ['projectile', 'boule_feu'], clerc: ['soins', 'mot_guerison', 'benediction'] };
 const SPRITE_CLASS = { warrior: 'guerrier', mage: 'mage', ranger: 'rodeur', cleric: 'clerc' };
 const SPRITE_ACTIONS = { dragon: ['souffle'] };
 
-function unitActions(u) {
-  return [...(CLASS_ACTIONS[u.cls || SPRITE_CLASS[u.sprite]] || []), ...(SPRITE_ACTIONS[u.sprite] || [])];
+// Actions standard, ouvertes à tous
+const STD_ACTIONS = {
+  foncer:     { name: 'Foncer', icon: '🏃', cost: 'action', desc: 'Déplacement doublé pour ce tour.' },
+  desengager: { name: 'Se désengager', icon: '🚪', cost: 'action', desc: 'Pas d\'attaque d\'opportunité ce tour.' },
+  esquiver:   { name: 'Esquiver', icon: '🛡', cost: 'action', desc: 'Désavantage aux attaques contre soi jusqu\'à son prochain tour.' },
+};
+
+const allActions = u => [...(CLASS_ACTIONS[u.cls || SPRITE_CLASS[u.sprite]] || []), ...(SPRITE_ACTIONS[u.sprite] || [])];
+const unitActions = u => allActions(u).filter(k => (ACTIONS[k].minLvl || 1) <= (u.lvl || 1));
+const usesMax = (u, k) => ACTIONS[k].uses(u);
+// Récupère les utilisations : 'all' (nouveau combat d'un monstre), 'long', 'court', 'tour'
+function resetUses(u, rest = 'all') {
+  u.uses ||= {};
+  unitActions(u).forEach(k => {
+    const r = ACTIONS[k].rest;
+    if (rest === 'all' || rest === r || (rest === 'long' && r !== 'tour') || u.uses[k] === undefined) u.uses[k] = usesMax(u, k);
+  });
 }
-function resetUses(u) { u.uses = Object.fromEntries(unitActions(u).map(k => [k, ACTIONS[k].uses])); }
-const usesLeft = (u, k) => { if (!u.uses || u.uses[k] === undefined) resetUses(u); return u.uses[k]; };
+const usesLeft = (u, k) => { if (!u.uses || u.uses[k] === undefined) resetUses(u, 'missing'); return u.uses[k]; };
 
 let actionMode = null;   // capacité en attente d'une cible
 const cellDist = (ax, ay, bx, by) => Math.max(Math.abs(ax - bx), Math.abs(ay - by));
@@ -47,12 +66,30 @@ const inArea = (cx, cy, r) => map.units.filter(o => !isKO(o) && (() => {
   for (let y = o.y; y < o.y + o.size; y++) for (let x = o.x; x < o.x + o.size; x++) if (Math.hypot(x - cx, y - cy) <= r + 0.5) return true;
   return false;
 })());
+// Un allié (non KO) au contact de la cible
+const allyNear = (u, t) => map.units.some(o => o !== u && unitKind(o) === unitKind(u) && !isKO(o) && footDist(o, o.x, o.y, t) <= 1);
+
+// ---------- Actions standard ----------
+function useStd(u, k) {
+  const a = STD_ACTIONS[k];
+  const cost = k === 'desengager' && (u.traits || []).includes('fuite_agile') ? 'bonus' : a.cost;
+  if (isKO(u) || !spend(u, cost)) return false;
+  pushUndo();
+  if (k === 'foncer') u.act.dash = true;
+  if (k === 'desengager') u.act.disengage = true;
+  if (k === 'esquiver') addCond(u, 'esquive');
+  addLog(`${a.icon} ${u.name} : ${a.name}${cost === 'bonus' ? ' (action bonus)' : ''}`, 'turn');
+  popText(u, `${a.icon} ${a.name}`, '#cfe0ff', 14);
+  changed(); syncPlayUI();
+  return true;
+}
 
 // ---------- Lancer une capacité ----------
-function useAction(u, k) {
-  const act = ACTIONS[k]; if (!act || isKO(u) || usesLeft(u, k) <= 0) return;
-  if (act.type === 'self_heal' || act.type === 'self_buff') return resolveAction(u, k, { unit: u });
-  actionMode = { u, k }; attackMode = false;
+// scroll : objet (parchemin) utilisé à la place d'une utilisation
+function useAction(u, k, scroll = null) {
+  const act = ACTIONS[k]; if (!act || isKO(u) || (!scroll && usesLeft(u, k) <= 0)) return;
+  if (act.type === 'self_heal' || act.type === 'self_buff') return resolveAction(u, k, { unit: u }, scroll);
+  actionMode = { u, k, scroll }; attackMode = false;
   $('attackHint').textContent = `${act.icon} ${u.name} : ${act.name} — ` +
     (act.type === 'area' || act.type === 'buff' ? 'clique sur le centre de la zone' : act.type === 'heal' ? 'clique sur l\'allié à soigner' : 'clique sur la cible') + ' (Échap pour annuler)';
   $('attackHint').classList.remove('hidden');
@@ -60,9 +97,9 @@ function useAction(u, k) {
 }
 function cancelAction() { actionMode = null; $('attackHint').classList.add('hidden'); syncPlayUI(); redraw(); }
 
-// Validité de la cible survolée/cliquée ; renvoie { ok, reason, unit, cx, cy, targets }
-function actionTarget(p) {
-  const { u, k } = actionMode, act = ACTIONS[k], c = unitCenter(u);
+// Validité d'une cible ; renvoie { ok, reason, unit, cx, cy, targets }. p = case { cx, cy } et/ou figurine (p.unit)
+function actionTarget(p, u = actionMode.u, k = actionMode.k) {
+  const act = ACTIONS[k], c = unitCenter(u);
   if (act.type === 'area' || act.type === 'buff') {
     const d = cellDist(c.x, c.y, p.cx, p.cy);
     const los = d <= 1 || lineOfSight(Math.round(c.x), Math.round(c.y), p.cx, p.cy, terrainGrids().block);
@@ -71,63 +108,70 @@ function actionTarget(p) {
     return { ok: inMap(p.cx, p.cy) && d <= act.range && los, reason: d > act.range ? 'hors de portée' : !los ? 'pas de ligne de vue' : '',
              cx: p.cx, cy: p.cy, targets };
   }
-  const t = hitUnit(p.wx, p.wy); if (!t) return { ok: false };
-  const tc = unitCenter(t), d = Math.max(0, cellDist(c.x, c.y, tc.x, tc.y) - (t.size - 1) / 2 - (u.size - 1) / 2);
+  const t = p.unit || hitUnit(p.wx, p.wy); if (!t) return { ok: false };
+  const d = footDist(u, u.x, u.y, t);
   if (act.type === 'heal') {
     const ok = unitKind(t) === unitKind(u) && !t.dead && d <= act.range;
     return { ok, unit: t, reason: unitKind(t) !== unitKind(u) ? 'pas un allié' : t.dead ? 'mort' : d > act.range ? 'hors de portée' : '' };
   }
-  const range = act.type === 'missile' ? act.range : unitStats(u).attaque;
-  const ok = t !== u && unitKind(t) !== unitKind(u) && !isKO(t) && (act.type === 'missile' ? d <= range : canHitNow(u, t));
-  return { ok, unit: t, reason: ok ? '' : 'hors de portée' };
+  if (t === u || unitKind(t) === unitKind(u) || isKO(t)) return { ok: false, unit: t, reason: 'cible invalide' };
+  if (act.type === 'missile') return { ok: d <= act.range, unit: t, reason: d > act.range ? 'hors de portée' : '' };
+  if (!canHitNow(u, t)) return { ok: false, unit: t, reason: 'hors de portée' };
+  if (k === 'sournoise' && enforce() && !allyNear(u, t) && attackMods(u, t, (unitStats(u).attaque || 1) <= 1).adv <= 0)
+    return { ok: false, unit: t, reason: 'il faut un allié au contact ou l\'avantage' };
+  return { ok: true, unit: t };
 }
 
-function resolveAction(u, k, tg) {
+function resolveAction(u, k, tg, scroll = null) {
   const act = ACTIONS[k];
-  if (usesLeft(u, k) <= 0) return;
+  if (!scroll && usesLeft(u, k) <= 0) return false;
+  if (act.type === 'attack' ? !useAttack(u) : !spend(u, act.cost)) return false;   // l'attaque sournoise est une attaque d'arme
   pushUndo();
-  u.uses[k]--;
+  if (scroll) u.items[scroll]--; else u.uses[k]--;
   if (u.hidden) { u.hidden = false; addLog(`🙈 ${u.name} sort de sa cachette !`, 'cond'); }
-  const tag = `${act.icon} ${u.name} : ${act.name}`;
+  const tag = `${act.icon} ${u.name} : ${act.name}${scroll ? ' (parchemin)' : ''}`;
   if (act.sound) sfx(act.sound);
   if (act.type === 'self_heal') {
     const r = rollDice(act.dice(u)); addLog(`${tag} ${r.detail}`, 'heal'); areaFx(u, unitCenter(u), 0.6, 'heal', '#5be37a'); heal(u, r.total);
   } else if (act.type === 'self_buff') {
-    if (!u.conds.includes(act.cond)) u.conds.push(act.cond);
+    addCond(u, act.cond, act.dur);
     addLog(`${tag} — ${act.desc}`, 'cond'); popText(u, `${act.icon} ${act.name} !`, '#ff9a6a', 16);
   } else if (act.type === 'heal') {
     const r = rollDice(act.dice(u)); addLog(`${tag} → ${tg.unit.name} ${r.detail}`, 'heal');
-    areaFx(u, unitCenter(tg.unit), 0.6, 'heal', '#5be37a'); setTimeout(() => heal(tg.unit, r.total), 250);
+    areaFx(u, unitCenter(tg.unit), 0.6, 'heal', '#5be37a'); later(() => heal(tg.unit, r.total), 250);
   } else if (act.type === 'attack') {
-    attack(u, tg.unit, { name: act.name, bonusDice: act.bonus(u), noUndo: true });
+    attack(u, tg.unit, { name: act.name, bonusDice: act.bonus(u), noUndo: true, free: true });
   } else if (act.type === 'missile') {
     addLog(`${tag} → ${tg.unit.name} (${act.darts} traits qui touchent toujours)`, 'hit');
-    for (let i = 0; i < act.darts; i++) setTimeout(() => {
-      if (!map.units.includes(tg.unit) || isKO(tg.unit) && unitKind(tg.unit) !== 'hero') return;
+    for (let i = 0; i < act.darts; i++) later(() => {
+      if (!map.units.includes(tg.unit) || (isKO(tg.unit) && unitKind(tg.unit) !== 'hero')) return;
       const st = { ...attackOf(u), fx: 'orb', color: '#b9a4ff', name: act.name, dur: 800 };
       startAttack(u, tg.unit, { hit: true }, st); broadcast({ type: 'attack', a: u.id, t: tg.unit.id, res: { hit: true }, st });
       const r = rollDice(act.dice(u));
-      setTimeout(() => applyDamage(tg.unit, r.total, u), st.dur * 0.62);
+      later(() => applyDamage(tg.unit, r.total, u, false, act.dmgType), st.dur * 0.62);
     }, i * 260);
   } else if (act.type === 'area') {
-    const dc = saveDC(u, act), dice = act.dice(u), r = rollDice(dice);
-    addLog(`${tag} — ${r.total} dégâts ${r.detail}, sauvegarde de DEX DD ${dc} pour moitié`, 'crit');
+    const dc = saveDC(u, act), r = rollDice(act.dice(u));
+    addLog(`${tag} — ${r.total} dégâts ${dmgName(act.dmgType)} ${r.detail}, sauvegarde de ${AB_NAME[act.save]} DD ${dc} pour moitié`, 'crit');
     areaFx(u, { x: tg.cx, y: tg.cy }, act.radius, act.fx, act.color);
     tg.targets.forEach(o => {
-      const d = rollDie(20), tot = d + (o.init || 0), ok = tot >= dc, dmg = ok ? Math.floor(r.total / 2) : r.total;
-      addLog(`   ${o.name} : 🎲 ${d} ${fmtMod(o.init || 0)} = ${tot} → ${ok ? 'réussi, moitié' : 'raté'} : ${dmg} dégâts`, ok ? 'miss' : 'hit');
-      setTimeout(() => applyDamage(o, dmg, u), 700);
+      const s = rollSave(o, act.save, dc), dmg = s.ok ? Math.floor(r.total / 2) : r.total;
+      addLog(`   ${o.name} : ${s.txt} → ${s.ok ? 'réussi, moitié' : 'raté'} : ${dmg} dégâts`, s.ok ? 'miss' : 'hit');
+      later(() => applyDamage(o, dmg, u, false, act.dmgType), 700);
     });
     if (!tg.targets.length) addLog('   Personne dans la zone.', 'miss');
   } else if (act.type === 'buff') {
     areaFx(u, { x: tg.cx, y: tg.cy }, act.radius, act.fx, act.color);
-    tg.targets.forEach(o => { if (!o.conds.includes(act.cond)) o.conds.push(act.cond); setTimeout(() => popText(o, '🌟 Béni', '#ffd84a', 15), 500); });
-    addLog(`${tag} → ${tg.targets.map(o => o.name).join(', ') || 'personne'} (+1d4 aux attaques)`, 'cond');
+    tg.targets.forEach(o => { addCond(o, act.cond, act.dur); later(() => popText(o, '🌟 Béni', '#ffd84a', 15), 500); });
+    if (act.conc) startConcentration(u, k, tg.targets.map(o => o.id), act.cond);
+    addLog(`${tag} → ${tg.targets.map(o => o.name).join(', ') || 'personne'} (+1d4 aux attaques${act.conc ? ', concentration' : ''})`, 'cond');
   }
   changed(); syncPlayUI();
+  return true;
 }
 // Effet visuel de zone (aussi envoyé à l'écran des joueurs)
 function areaFx(u, center, r, kind, color) {
+  if (SIM) return;
   const from = unitBox(u), to = { x: (center.x + 0.5) * T, y: (center.y + 0.5) * T - levelAt(Math.round(center.x), Math.round(center.y)) * LH() };
   const fx = { from: { x: from.cx, y: from.fy - from.sw * 0.6 }, to, r: (r + 0.5) * T, kind, color };
   startAreaFx(fx); broadcast({ type: 'area', fx });
@@ -137,16 +181,16 @@ function actionClick(e, p) {
   if (e.button === 2) { cancelAction(); return; }
   const tg = actionTarget(p);
   if (!tg.ok) { if (tg.reason) popText(actionMode.u, tg.reason, '#ff9a8a', 13); return; }
-  const { u, k } = actionMode; actionMode = null; $('attackHint').classList.add('hidden');
-  resolveAction(u, k, tg);
+  const { u, k, scroll } = actionMode; actionMode = null; $('attackHint').classList.add('hidden');
+  resolveAction(u, k, tg, scroll);
 }
 
-// Gabarit de ciblage : zone, portée, figurines touchées
+// Gabarit de ciblage : portée, zone, figurines touchées
 function drawActionTarget(c) {
   if (!actionMode || !hover) return;
   const { u, k } = actionMode, act = ACTIONS[k], tg = actionTarget(hover), uc = unitCenter(u);
   c.save();
-  if (act.range) {   // portée autour du lanceur
+  if (act.range) {
     c.strokeStyle = 'rgba(160,200,255,.5)'; c.setLineDash([6, 6]); c.lineWidth = 2;
     const R = (act.range + 0.5 + (u.size - 1) / 2) * T;
     c.strokeRect((uc.x + 0.5) * T - R, (uc.y + 0.5) * T - R - unitLevel(u) * LH(), R * 2, R * 2); c.setLineDash([]);
@@ -168,68 +212,4 @@ function drawActionTarget(c) {
     if (!tg.ok && tg.reason) tag(c, b.cx, b.fy + 18, tg.reason, '#8a2a2a');
   }
   c.restore();
-}
-
-// ---------- Tour automatique des monstres ----------
-let autoMonsters = false;
-try { autoMonsters = localStorage.getItem('jdr-automonsters') === '1'; } catch (e) {}
-
-// Choisit où aller et qui attaquer : priorité aux cibles affaiblies, à distance on garde ses distances
-function aiTurn(u) {
-  if (!u || isKO(u) || map.turn <= 0) return;
-  const foes = map.units.filter(o => unitKind(o) !== unitKind(u) && !isKO(o) && !o.hidden);
-  if (!foes.length) { addLog(`🤖 ${u.name} n'a personne à attaquer.`, 'info'); return; }
-  invalidateZones();
-  // souffle / zone si au moins 2 ennemis touchés sans allié
-  for (const k of unitActions(u).filter(k => ACTIONS[k].type === 'area' && usesLeft(u, k) > 0)) {
-    const act = ACTIONS[k], c = unitCenter(u);
-    let best = null;
-    foes.forEach(f => {
-      const fc = unitCenter(f), tx = Math.round(fc.x), ty = Math.round(fc.y);
-      if (cellDist(c.x, c.y, tx, ty) > act.range) return;
-      const hit = inArea(tx, ty, act.radius), n = hit.filter(o => unitKind(o) !== unitKind(u)).length;
-      if (hit.some(o => unitKind(o) === unitKind(u)) || n < 2) return;
-      if (!best || n > best.n) best = { n, cx: tx, cy: ty, targets: hit };
-    });
-    if (best) { addLog(`🤖 ${u.name} utilise ${act.name} !`, 'turn'); resolveAction(u, k, best); return; }
-  }
-  const z = computeZones(u), g = hitContext(u), st = unitStats(u);
-  let best = null;
-  for (const [x, y, L] of z.ends) {
-    const d = z.dist[y * map.cols + x];
-    for (const f of foes) {
-      let ok = false;
-      for (let fy = f.y; fy < f.y + f.size && !ok; fy++) for (let fx = f.x; fx < f.x + f.size && !ok; fx++) ok = canHitCell(g, x, y, L, fx, fy);
-      if (!ok) continue;
-      const keep = st.attaque > 1 ? cellDist(x, y, f.x, f.y) * 0.6 : 0;
-      const score = 40 - f.hp + (f.hp / f.hpMax < 0.5 ? 8 : 0) - d * 0.4 + keep + (unitLevel(u) - (f ? unitLevel(f) : 0)) * 0.5;
-      if (!best || score > best.score) best = { x, y, f, score };
-    }
-  }
-  pushUndo();
-  if (best) {
-    if (best.x !== u.x || best.y !== u.y) { u.x = best.x; u.y = best.y; addLog(`🤖 ${u.name} se déplace pour attaquer ${best.f.name}`, 'turn'); }
-    changed(); syncPlayUI();
-    setTimeout(() => { if (map.units.includes(u) && !isKO(u)) attack(u, best.f, { noUndo: true }); }, 450);
-    return;
-  }
-  // personne à portée : se rapprocher de l'ennemi le plus proche
-  const near = foes.reduce((a, b) => Math.hypot(b.x - u.x, b.y - u.y) < Math.hypot(a.x - u.x, a.y - u.y) ? b : a);
-  const end = z.ends.reduce((a, b) => Math.hypot(b[0] - near.x, b[1] - near.y) < Math.hypot(a[0] - near.x, a[1] - near.y) ? b : a, [u.x, u.y]);
-  u.x = end[0]; u.y = end[1];
-  addLog(`🤖 ${u.name} avance vers ${near.name}`, 'turn');
-  changed(); syncPlayUI();
-}
-// Joue le tour du monstre actif puis passe au suivant
-let aiTimer = 0;
-function runAiTurn(thenEnd) {
-  const u = activeUnit(); if (!u) return;
-  aiTurn(u);
-  if (thenEnd) { clearTimeout(aiTimer); aiTimer = setTimeout(() => { if (activeUnit() === u) endTurn(); }, 2100); }
-}
-function maybeAutoMonster() {
-  const u = activeUnit();
-  if (!autoMonsters || !u || unitKind(u) !== 'monster' || isKO(u) || PLAYER_VIEW) return;
-  clearTimeout(aiTimer);
-  aiTimer = setTimeout(() => { if (activeUnit() === u && map.turn > 0) runAiTurn(true); }, 700);
 }

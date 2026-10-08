@@ -11,6 +11,10 @@ function ensureCombat(u) {
   if (u.hpMax === undefined) Object.assign(u, spriteCombat(u.sprite));
   if (u.hp === undefined) u.hp = u.hpMax;
   if (u.xp === undefined) u.xp = unitKind(u) === 'monster' ? spriteCombat(u.sprite).xp : 0;
+  const d = spriteCombat(u.sprite);   // bloc de statistiques complet (anciennes sauvegardes)
+  ['ab', 'saveProf', 'prof', 'dmgType', 'resist', 'immun', 'vuln', 'multi', 'traits', 'lvl'].forEach(k => { if (u[k] === undefined) u[k] = d[k]; });
+  if (!u.cls && SPRITE_CLASS[u.sprite]) u.cls = SPRITE_CLASS[u.sprite];
+  if (!u.skills) u.skills = CLASS_SKILLS[u.cls] || ['perception'];
   if (!u.conds) u.conds = [];
   if (!u.track) u.track = NEW_TRACK();
   return u;
@@ -20,6 +24,7 @@ const unitById = id => map.units.find(u => u.id === id);
 const activeUnit = () => map.turn > 0 ? unitById(map.order[map.active]) || null : null;
 
 function addLog(text, type = '') {
+  if (SIM && !simVerbose) return;
   map.log.unshift({ text, type, round: map.turn });
   if (map.log.length > 400) map.log.length = 400;
 }
@@ -43,10 +48,15 @@ function startCombat(noUndo = false) {
   if (!noUndo) pushUndo();
   anims = []; map.log = []; map.order = []; map.active = 0; map.turn = 1;
   addLog('⚔ Début du combat : jets d\'initiative', 'round');
-  map.units.forEach(u => { u.ox = u.sx = u.x; u.oy = u.sy = u.y; resetUses(u); rollInitiative(u); });
+  map.units.forEach(u => { u.ox = u.sx = u.x; u.oy = u.sy = u.y; delete u.act; initUses(u); rollInitiative(u); });
   sortOrder(); map.active = 0;
   addLog('— Round 1 —', 'round');
   beginTurn();
+}
+// Utilisations des capacités : celles de la fiche (récupérées au repos) ou toutes pour un monstre
+function initUses(u) {
+  const s = u.sheetId && getSheet(u.sheetId);
+  if (s && s.uses) { u.uses = { ...s.uses }; resetUses(u, 'missing'); } else resetUses(u, 'all');
 }
 // Passe à la figurine suivante (nouveau round après la dernière)
 function advance() {
@@ -73,14 +83,23 @@ function beginTurn() {
   const u = activeUnit();
   if (u && !isKO(u)) {
     u.sx = u.x; u.sy = u.y;   // déplacement complet pour ce tour
+    newBudget(u);             // action, action bonus, réaction
     addLog(`▶ Tour de ${u.name}`, 'turn');
     playSel = u; sfx('turn');
-    if ((u.conds || []).includes('feu')) {   // en feu : 1d6 dégâts au début du tour
-      const r = rollDice('1d6'); addLog(`🔥 ${u.name} brûle : ${r.total} dégâts`, 'hit'); applyDamage(u, r.total);
+    tickConds(u);
+    resetUses(u, 'tour');
+    // capacité qui se recharge sur 5-6 (souffle du dragon)
+    unitActions(u).filter(k => ACTIONS[k].rest === 'recharge' && u.uses[k] <= 0).forEach(k => {
+      const d = rollDie(6); if (d >= 5) { u.uses[k] = usesMax(u, k); addLog(`🔄 ${u.name} : ${ACTIONS[k].name} rechargé (${d})`, 'roll'); }
+    });
+    // se relever (moitié du déplacement) : automatique en règles strictes et pour l'IA
+    if (u.conds.includes('aterre') && (enforce() || isAI(u))) { removeCond(u, 'aterre'); u.act.standUp = true; addLog(`⤴ ${u.name} se relève`, 'cond'); }
+    if (u.conds.includes('feu')) {   // en feu : 1d6 dégâts au début du tour
+      const r = rollDice('1d6'); addLog(`🔥 ${u.name} brûle : ${r.total} dégâts`, 'hit'); applyDamage(u, r.total, null, false, 'feu');
     }
   }
   changed(); syncPlayUI();
-  maybeAutoMonster();
+  maybeAuto();
 }
 function endTurn() {
   if (map.turn <= 0) return;
@@ -93,7 +112,7 @@ function resetCombat(restart) {
   map.units.forEach(u => {
     u.x = u.sx = u.ox ?? u.x; u.y = u.sy = u.oy ?? u.y;
     u.hp = u.hpMax; u.conds = []; u.track = NEW_TRACK(); delete u.initRoll;
-    u.ds = null; u.dead = false; u.stable = false; resetUses(u);
+    u.ds = null; u.dead = false; u.stable = false; u.condDur = {}; u.conc = null; delete u.act; initUses(u);
   });
   map.turn = 0; map.order = []; map.active = 0; map.log = [];
   if (restart) startCombat(true);
@@ -112,17 +131,18 @@ function endCombat() {
     if (share) popText(u, `+${share} XP`, '#ffd23a', 16);
     const s = u.sheetId && getSheet(u.sheetId); if (!s) return;
     s.hpCur = u.hp; s.xp = (s.xp || 0) + share;
+    s.uses = { ...(u.uses || {}) }; if (u.items) s.items = { ...u.items };
     if (u.dead) { s.dead = true; addLog(`⚰ La fiche de ${s.name} est marquée comme morte.`, 'ko'); }
-    if (canLevelUp(s)) { addLog(`⬆ ${s.name} peut passer au niveau ${s.level + 1} (onglet Personnages) !`, 'win'); setTimeout(() => sfx('levelup'), 900); }
+    if (canLevelUp(s)) { addLog(`⬆ ${s.name} peut passer au niveau ${s.level + 1} (onglet Personnages) !`, 'win'); later(() => sfx('levelup'), 900); }
   });
-  if (heroes.some(u => u.sheetId)) { saveSheets(); addLog('💾 PV et XP enregistrés sur les fiches des personnages.', 'info'); }
+  if (heroes.some(u => u.sheetId)) { saveSheets(); addLog('💾 PV, XP, capacités et objets enregistrés sur les fiches des personnages.', 'info'); }
   map.turn = 0; map.order = []; map.active = 0; map.units.forEach(u => delete u.initRoll);
   changed(); syncPlayUI();
 }
 
 // Figurine ajoutée en cours de combat : elle lance son initiative et prend sa place dans l'ordre
 function joinCombat(u) {
-  resetUses(u);
+  initUses(u);
   rollInitiative(u);
   sortOrder();
 }
@@ -146,15 +166,20 @@ function attackMods(a, t, melee) {
   if (has(t, 'aveugle') || has(t, 'etourdi') || has(t, 'entrave')) { adv++; why.push('cible vulnérable'); }
   if (has(t, 'aterre')) { if (melee) { adv++; why.push('cible à terre'); } else { adv--; why.push('cible à terre, de loin'); } }
   if (isKO(t)) { adv++; why.push('cible inconsciente'); }
+  if (has(t, 'esquive')) { adv--; why.push('cible en esquive'); }
+  if ((a.traits || []).includes('meute') && allyNear(a, t)) { adv++; why.push('tactique de meute'); }
   return { adv: Math.sign(adv), why };
 }
 // Jet d'attaque : d20 (+ avantage/désavantage) + toucher (+1d4 si béni) contre la CA, puis dégâts
 // (doublés sur un 20 naturel ou contre une cible inconsciente au corps à corps ; +2 en rage)
+// opt : name, bonusDice, noUndo, reaction (attaque d'opportunité), free (action déjà dépensée), force (pas d'avertissement de portée)
 function attack(a, t, opt = {}) {
+  if (!opt.reaction && !opt.free && !useAttack(a)) return;
   if (!opt.noUndo) pushUndo();
   const st = attackOf(a), name = opt.name || st.name;
-  const melee = (unitStats(a).attaque || 1) <= 1, reach = canHitNow(a, t);
+  const melee = (unitStats(a).attaque || 1) <= 1, reach = opt.force || canHitNow(a, t);
   const where = reach ? '' : melee ? ' (hors de portée)' : ' (hors de portée ou sans ligne de vue)';
+  const cover = melee ? { bonus: 0 } : coverBonus(a, t), ca = (t.ca ?? 10) + cover.bonus, type = opt.dmgType || a.dmgType;
   if (a.hidden) { a.hidden = false; addLog(`🙈 ${a.name} sort de sa cachette !`, 'cond'); }
   sfx('swing');
   if (!autoRoll) {
@@ -165,13 +190,13 @@ function attack(a, t, opt = {}) {
   const m = attackMods(a, t, melee), r1 = rollDie(20), r2 = rollDie(20);
   const d20 = m.adv > 0 ? Math.max(r1, r2) : m.adv < 0 ? Math.min(r1, r2) : r1;
   const bless = (a.conds || []).includes('beni') ? rollDie(4) : 0, tot = d20 + (a.toucher || 0) + bless;
-  const hit = d20 === 20 || (d20 !== 1 && tot >= (t.ca ?? 10)), crit = hit && (d20 === 20 || (melee && isKO(t)));
+  const hit = d20 === 20 || (d20 !== 1 && tot >= ca), crit = hit && (d20 === 20 || (melee && isKO(t)));
   const res = { hit, crit, dmg: 0 };
   let txt = `⚔ ${a.name} → ${t.name} (${name})${where} : 🎲 ${d20}` +
     (m.adv ? ` (${m.adv > 0 ? 'avantage' : 'désavantage'} [${r1},${r2}] : ${m.why.join(', ')})` : '') +
-    ` ${fmtMod(a.toucher || 0)}${bless ? ` +${bless} béni` : ''} = ${tot} contre CA ${t.ca}`;
+    ` ${fmtMod(a.toucher || 0)}${bless ? ` +${bless} béni` : ''} = ${tot} contre CA ${ca}${cover.bonus ? ` (abri +${cover.bonus} : ${cover.why})` : ''}`;
   if (hit) {
-    const formula = a.degats + (opt.bonusDice ? '+' + opt.bonusDice : '') + ((a.conds || []).includes('rage') ? '+2' : '');
+    const formula = a.degats + (opt.bonusDice ? '+' + opt.bonusDice : '') + ((a.conds || []).includes('rage') && melee ? '+2' : '');
     const r = rollDice(formula, crit);
     res.dmg = isNaN(r.total) ? 0 : r.total;
     txt += crit ? ` → CRITIQUE ! ${res.dmg} dégâts ${r.detail}` : ` → touché : ${res.dmg} dégâts ${r.detail}`;
@@ -183,15 +208,30 @@ function attack(a, t, opt = {}) {
   addLog(txt, hit ? (crit ? 'crit' : 'hit') : 'miss');
   startAttack(a, t, res); broadcast({ type: 'attack', a: a.id, t: t.id, res });
   // les dégâts s'appliquent au moment de l'impact de l'animation
-  setTimeout(() => {
-    if (hit) { sfx(crit ? 'crit' : 'hit'); applyDamage(t, res.dmg, a, crit); }
-    else { sfx('miss'); popText(t, d20 === 1 ? 'Échec critique !' : 'Raté !', '#c8ccd4'); }
+  later(() => {
+    if (hit) {
+      sfx(crit ? 'crit' : 'hit'); applyDamage(t, res.dmg, a, crit, type);
+      // renversement (loup) : sauvegarde de FOR DD 11 ou à terre
+      if ((a.traits || []).includes('renversement') && !isKO(t) && t.size === 1 && !t.conds.includes('aterre')) {
+        const s = rollSave(t, 'for', 11);
+        addLog(`   ${t.name} : renversement, ${s.txt} contre DD 11 → ${s.ok ? 'tient debout' : 'à terre !'}`, s.ok ? 'roll' : 'cond');
+        if (!s.ok) { addCond(t, 'aterre'); popText(t, '⤵️ à terre', '#e6d8ff', 14); }
+      }
+    } else { sfx('miss'); popText(t, d20 === 1 ? 'Échec critique !' : 'Raté !', '#c8ccd4'); }
   }, st.dur * hitTime({ st }));
   changed(); syncPlayUI();
 }
 
-function applyDamage(t, n, src = null, crit = false) {
+function applyDamage(t, n, src = null, crit = false, type = '') {
   if (!map.units.includes(t) || !(n > 0)) return;
+  let f = dmgFactor(t, type);
+  if (t.conds.includes('rage') && ['tranchant', 'perforant', 'contondant'].includes(type)) f *= 0.5;
+  if (f !== 1) {
+    const m = Math.floor(n * f);
+    addLog(`   ${t.name} : ${f === 0 ? 'immunisé' : f < 1 ? 'résistant' : 'vulnérable'} aux dégâts ${dmgName(type)} (${n} → ${m})`, 'info');
+    if (m <= 0) { popText(t, 'immunisé', '#c8ccd4', 14); return; }
+    n = m;
+  }
   // personnage déjà à terre : chaque coup est un échec au jet contre la mort (2 sur un critique)
   if (t.hp === 0 && unitKind(t) === 'hero' && !t.dead) {
     t.ds ||= { s: 0, f: 0 }; t.stable = false; t.ds.f += crit ? 2 : 1;
@@ -205,12 +245,14 @@ function applyDamage(t, n, src = null, crit = false) {
   t.track.taken += was - t.hp;
   if (src && map.units.includes(src)) src.track.dealt += was - t.hp;
   popText(t, (crit ? 'CRITIQUE  −' : '−') + n, crit ? '#ffcf3a' : '#ff5a4a', crit ? 22 : 18);
+  concentrationCheck(t, n);
   if (was > 0 && t.hp === 0) {
+    t.wasDown = true;
     if (unitKind(t) === 'hero') { t.ds = { s: 0, f: 0 }; t.stable = false; addLog(`💀 ${t.name} tombe inconscient ! Jets contre la mort à chaque tour.`, 'ko'); }
     else addLog(`💀 ${t.name} est hors de combat !`, 'ko');
     if (src) src.track.kos++;
     sfx('ko');
-    setTimeout(() => popText(t, '💀 KO', '#ffffff', 18), 350);
+    later(() => popText(t, '💀 KO', '#ffffff', 18), 350);
     checkVictory();
   }
   changed(); syncPlayUI();
@@ -250,13 +292,13 @@ function checkVictory() {
   if (map.turn <= 0) return;
   const alive = k => map.units.some(u => unitKind(u) === k && !isKO(u));
   const has = k => map.units.some(u => unitKind(u) === k);
-  if (has('monster') && !alive('monster') && alive('hero')) { addLog('🏆 Victoire ! Tous les ennemis sont hors de combat.', 'win'); setTimeout(() => sfx('victory'), 600); }
+  if (has('monster') && !alive('monster') && alive('hero')) { addLog('🏆 Victoire ! Tous les ennemis sont hors de combat.', 'win'); later(() => sfx('victory'), 600); }
   else if (has('hero') && !alive('hero') && alive('monster')) addLog('☠ Défaite... tous les personnages sont hors de combat.', 'ko');
 }
 function toggleCond(u, k) {
   pushUndo();
   const c = condOf(k), on = !u.conds.includes(k);
-  u.conds = on ? [...u.conds, k] : u.conds.filter(x => x !== k);
+  if (on) addCond(u, k); else { removeCond(u, k); if (k === 'concentre') endConcentration(u, 'retirée par le MJ'); }
   addLog(`${c.icon} ${u.name} : ${c.name} ${on ? 'ajouté' : 'retiré'}`, 'cond');
   if (on) popText(u, c.icon + ' ' + c.name, '#e6d8ff', 14);
   changed(); syncPlayUI();
@@ -366,8 +408,13 @@ function syncCombatUI() {
   $('btnNextTurn').classList.toggle('hidden', !fighting);
   $('combatCtl').classList.toggle('hidden', !fighting);
   $('autoRoll').checked = autoRoll;
-  $('autoMonsters').checked = autoMonsters;
-  $('btnAi').classList.toggle('hidden', !(fighting && act && !isKO(act) && unitKind(act) === 'monster'));
+  $('autoMonsters').checked = autoMonsters; $('autoHeroes').checked = autoHeroes; $('rulesMode').checked = rulesMode;
+  $('aiSpeed').value = String(aiSpeed); $('btnAiPause').textContent = aiPaused ? '▶ Reprendre' : '⏸ Pause';
+  $('btnAiPause').classList.toggle('on', aiPaused);
+  $('btnAi').classList.toggle('hidden', !(fighting && act && !isKO(act)));
+  $('btnAi').textContent = act ? `🤖 Jouer le tour de ${act.name} (IA)` : '🤖 Jouer ce tour (IA)';
+  $('modeBadge').textContent = rulesMode ? '⚖ Règles strictes' : '🎭 Mode MJ';
+  $('modeBadge').className = 'mode-badge ' + (rulesMode ? 'rules' : 'gm');
   renderTracker(); renderLog(); renderSummary();
 }
 
@@ -377,10 +424,14 @@ $('btnStartCombat').onclick = () => startCombat();
 $('btnRestart').onclick = () => { if (confirm('Recommencer le combat ? Positions de départ, PV pleins, nouvelle initiative.')) resetCombat(true); };
 $('btnEndCombat').onclick = () => { if (confirm('Terminer le combat ? L\'XP des ennemis vaincus est partagée et les PV sont enregistrés sur les fiches.')) endCombat(); };
 $('btnNewCombat').onclick = () => { if (confirm('Nouveau combat ? Positions de départ, PV pleins, retour en préparation.')) resetCombat(false); };
-$('autoMonsters').onchange = e => {
-  autoMonsters = e.target.checked; try { localStorage.setItem('jdr-automonsters', autoMonsters ? '1' : '0'); } catch (err) {}
-  if (autoMonsters) maybeAutoMonster();
-};
+const savePref = (k, v) => { try { localStorage.setItem(k, v); } catch (err) {} };
+$('autoMonsters').onchange = e => { autoMonsters = e.target.checked; savePref('jdr-automonsters', autoMonsters ? '1' : '0'); syncPlayUI(); maybeAuto(); };
+$('autoHeroes').onchange = e => { autoHeroes = e.target.checked; savePref('jdr-autoheroes', autoHeroes ? '1' : '0'); syncPlayUI(); maybeAuto(); };
+$('rulesMode').onchange = e => { rulesMode = e.target.checked; savePref('jdr-rules', rulesMode ? '1' : '0');
+  addLog(rulesMode ? '⚖ Règles strictes : économie d\'actions, déplacement limité, attaques d\'opportunité.' : '🎭 Mode MJ : tu contrôles tout, les règles sont seulement indiquées.', 'round');
+  changed(); syncPlayUI(); };
+$('aiSpeed').onchange = e => { aiSpeed = +e.target.value; savePref('jdr-aispeed', aiSpeed); };
+$('btnAiPause').onclick = () => { aiPaused = !aiPaused; if (!aiPaused) maybeAuto(); else clearTimeout(aiTimer); syncPlayUI(); };
 $('btnAi').onclick = () => runAiTurn(false);
 $('autoRoll').onchange = e => { autoRoll = e.target.checked; try { localStorage.setItem('jdr-autoroll', autoRoll ? '1' : '0'); } catch (err) {} };
 

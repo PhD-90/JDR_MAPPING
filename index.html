@@ -115,7 +115,8 @@
     <input id="wName" class="w-name" type="text">
     <div class="w-day">📅 Jour <b id="wDay"></b>
       <button id="wNext" class="mini" title="Faire passer une journée">+1 jour</button>
-      <button id="wRest" class="mini" title="Le groupe récupère tous ses PV (+1 jour)">🛏 Repos long</button>
+      <button id="wShort" class="mini" title="1 heure : dés de vie et capacités de repos court">☕ Repos court</button>
+      <button id="wRest" class="mini" title="Le groupe récupère PV, capacités et dés de vie (+1 jour)">🛏 Repos long</button>
     </div>
 
     <h2>Lieux</h2>
@@ -188,7 +189,17 @@
       <button id="btnEndCombat" title="Partage l'XP des ennemis vaincus et enregistre les PV sur les fiches">🏁 Terminer</button>
     </div>
     <label class="auto-roll"><span>🎲 Jets d'attaque et de dégâts automatiques</span><input id="autoRoll" type="checkbox"></label>
-    <label class="auto-roll"><span>🤖 Les monstres jouent seuls</span><input id="autoMonsters" type="checkbox"></label>
+    <div class="mode-box">
+      <div class="mode-head"><span id="modeBadge" class="mode-badge"></span></div>
+      <label>⚖ Règles strictes <input id="rulesMode" type="checkbox"></label>
+      <p class="muted">Décoché = mode MJ : tu contrôles tout, les règles sont comptées et signalées sans jamais bloquer.</p>
+      <label>🤖 Monstres joués par l'IA <input id="autoMonsters" type="checkbox"></label>
+      <label>🤖 Héros joués par l'IA <input id="autoHeroes" type="checkbox"></label>
+      <div class="row ai-row">
+        <label>Vitesse <select id="aiSpeed"><option value="0.5">×0,5</option><option value="1">×1</option><option value="2">×2</option><option value="4">×4</option></select></label>
+        <button id="btnAiPause" class="mini">⏸ Pause</button>
+      </div>
+    </div>
     <button id="btnAi" class="wide-btn hidden" style="margin:-4px 0 10px">🤖 Jouer le tour de ce monstre</button>
     <h2>Suivi du combat <span class="muted">(ordre d'initiative)</span></h2>
     <div id="unitList"></div>
@@ -198,6 +209,11 @@
       <h2>Figurine sélectionnée</h2>
       <div class="unit-head"><div id="unitHead"></div><input id="unitName" type="text"></div>
       <label class="hide-tog">🙈 Cachée aux joueurs <input id="uHidden" type="checkbox"></label>
+      <label>Contrôle <select id="uCtrl"><option value="">Selon l'option du camp</option><option value="mj">🎭 MJ</option><option value="ia">🤖 IA</option></select></label>
+      <label>Rôle (IA) <span><select id="uRole"><option value="">Automatique</option><option value="tank">Tank</option><option value="soin">Soigneur</option>
+        <option value="lanceur">Lanceur de sorts</option><option value="tireur">Tireur</option><option value="escarmoucheur">Escarmoucheur</option><option value="brute">Brute</option></select>
+        <span id="uRoleAuto" class="muted"></span></span></label>
+      <div id="uEco" class="eco-row"></div>
       <div class="combat-box">
         <div class="hp-line"><span id="uHpTxt"></span><button id="uSheet" class="mini" title="Ouvrir la fiche de personnage">📜 Fiche</button></div>
         <div class="hpbar big"><i id="uHpBar"></i></div>
@@ -224,6 +240,9 @@
       </div>
       <button id="btnAttack" class="attack-btn">⚔ Attaquer <span class="muted">(A)</span></button>
       <div id="uActions" class="act-list"></div>
+      <div class="muted" style="margin-top:6px">Actions</div>
+      <div id="uStd" class="std-list"></div>
+      <div id="uItemsBox"><div class="muted" style="margin-top:6px">Objets</div><div id="uItems" class="std-list"></div></div>
       <button id="btnUnitBack" style="width:100%; margin:4px 0 2px">↺ Retour au départ du tour</button>
       <div id="unitRel"></div>
       <button id="btnUnitDel" style="width:100%; margin-top:6px">🗑 Retirer de la carte</button>
@@ -233,7 +252,9 @@
     <h2>Outils du MJ</h2>
     <button id="btnPlayers" class="primary wide-btn">📺 Ouvrir l'écran des joueurs</button>
     <p class="muted">Seconde fenêtre à placer sur la télé ou un 2ᵉ écran : brouillard opaque, figurines cachées et PV des monstres invisibles. Synchronisée en direct.</p>
+    <button id="btnSim" class="wide-btn">🧪 Simuler ce combat (IA contre IA)</button>
     <label>👁 Voir comme les joueurs <input id="previewPlayers" type="checkbox"></label>
+    <label>🪤 Pièges et secrets automatiques <input id="autoTraps" type="checkbox"></label>
     <label>🌫 Brouillard de guerre <input id="fogOn" type="checkbox"></label>
     <div id="fogTools" class="fog-tools">
       <div class="row"><button data-fog="reveal">🔦 Révéler</button><button data-fog="hide">🌫 Cacher</button></div>
@@ -282,6 +303,19 @@
   </aside>
 </div>
 
+<!-- ===== Simulation ===== -->
+<div id="simModal" class="modal hidden"><div class="modal-box">
+  <div class="modal-head"><b id="simTitle"></b><button id="simClose" class="mini">✖</button></div>
+  <div class="gm-form sim-form">
+    <label>Combats <input id="simN" type="number" min="10" max="1000" value="100"></label>
+    <label>Rounds max <input id="simRounds" type="number" min="3" max="100" value="20"></label>
+    <label>PV pleins <input id="simFresh" type="checkbox" checked></label>
+    <label>Graine <input id="simSeed" type="number" value="1"></label>
+    <button id="simRun" class="primary">▶ Lancer</button>
+  </div>
+  <div id="simOut"></div>
+</div></div>
+
 <script src="js/config.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/state.js"></script>
@@ -291,6 +325,7 @@
 <script src="js/ranges.js"></script>
 <script src="js/anims.js"></script>
 <script src="js/rules.js"></script>
+<script src="js/engine.js"></script>
 <script src="js/render.js"></script>
 <script src="js/editor.js"></script>
 <script src="js/presets.js"></script>
@@ -300,9 +335,14 @@
 <script src="js/fog.js"></script>
 <script src="js/sfx.js"></script>
 <script src="js/actions.js"></script>
+<script src="js/items.js"></script>
+<script src="js/skills.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/sim.js"></script>
 <script src="js/gmtools.js"></script>
 <script src="js/worldgen.js"></script>
 <script src="js/world.js"></script>
+<script src="js/campaign.js"></script>
 <script src="js/input.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/io.js"></script>

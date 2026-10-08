@@ -55,8 +55,11 @@ function canHitNow(a, t) {
 const DIRS4 = [[1,0],[-1,0],[0,1],[0,-1]];
 const DIRS8 = [...DIRS4, [1,1],[1,-1],[-1,1],[-1,-1]];
 
-function computeZones(u) {
-  if (zoneCache.has(u.id)) return zoneCache.get(u.id);
+// Zone de déplacement seule (plus rapide : IA, simulation)
+const computeMove = u => computeZones(u, true);
+
+function computeZones(u, moveOnly = false) {
+  if (!moveOnly && zoneCache.has(u.id)) return zoneCache.get(u.id);
   const { cols, rows } = map, N = cols * rows, s = u.size, st = unitStats(u), R = STATS.rules;
   const { surf, objCost } = terrainGrids();
 
@@ -120,6 +123,8 @@ function computeZones(u) {
     ends.push([x, y, lvlOf[i]]);
     for (let j = y; j < y + s; j++) for (let k = x; k < x + s; k++) move[j*cols + k] = 1;
   }
+
+  if (moveOnly) return { dist, move, attack: null, sx, sy, ends };
 
   // zone d'attaque depuis chaque case d'arrivée (portée, hauteur, ligne de vue)
   const atk = st.attaque, ranged = atk > 1, bonus = ranged ? (R.bonus_portee_hauteur || 0) : 0;

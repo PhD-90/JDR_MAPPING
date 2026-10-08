@@ -22,18 +22,21 @@ let anims = [], pops = [], areaList = [], animRaf = 0;
 
 // Effet de zone : explosion, pluie de flèches, lumière sacrée, soins
 function startAreaFx(fx) {
+  if (SIM) return;
   areaList.push({ ...fx, seed: (Math.random() * 1e5) | 0, start: performance.now(), dur: fx.kind === 'heal' ? 1000 : 1400 });
   if (!animRaf) animRaf = requestAnimationFrame(animTick);
 }
 
 // res = résultat du jet ({ hit, crit, dmg }) ou null si les jets ne sont pas automatiques
 function startAttack(a, t, res = null, st = null) {
+  if (SIM) return;
   st ||= attackOf(a);
   anims.push({ a, t, res, st, start: performance.now(), dur: st.dur, seed: (Math.random() * 1e5) | 0 });
   if (!animRaf) animRaf = requestAnimationFrame(animTick);
 }
 // Texte qui s'envole au-dessus d'une figurine (dégâts, soins, états...)
 function popText(u, text, color, size = 16) {
+  if (SIM) return;
   if (typeof broadcast === 'function' && !u.hidden) broadcast({ type: 'pop', u: u.id, text, color, size });
   pops.push({ u, text, color, size, start: performance.now(), dur: 1300 });
   if (!animRaf) animRaf = requestAnimationFrame(animTick);

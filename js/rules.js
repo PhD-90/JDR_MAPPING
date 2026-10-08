@@ -27,25 +27,25 @@ const RACES = {
 // de = dé de vie ; atk = caractéristique d'attaque ; prio = ordre de répartition des valeurs
 // ca(m) = classe d'armure selon les modificateurs ; spell = dégâts sans modificateur (sort)
 const CLASSES = {
-  guerrier: { name:'Guerrier', de:10, sprite:'warrior', atk:'for', prio:['for','con','dex','sag','cha','int'],
+  guerrier: { name:'Guerrier', de:10, sprite:'warrior', atk:'for', dmgType:'tranchant', prio:['for','con','dex','sag','cha','int'],
               arme:'Épée longue', degats:'1d8', portee:1, ca: m => 18, armure:'Cotte de mailles + bouclier',
               desc:'Maître des armes, solide en première ligne.' },
-  barbare:  { name:'Barbare', de:12, sprite:'warrior', atk:'for', prio:['for','con','dex','sag','cha','int'],
+  barbare:  { name:'Barbare', de:12, sprite:'warrior', atk:'for', dmgType:'tranchant', prio:['for','con','dex','sag','cha','int'],
               arme:'Hache à deux mains', degats:'1d12', portee:1, ca: m => 10 + m.dex + m.con, armure:'Sans armure (10 + DEX + CON)',
               desc:'Rage au combat, énormément de points de vie.' },
-  paladin:  { name:'Paladin', de:10, sprite:'cleric', atk:'for', prio:['for','cha','con','sag','dex','int'],
+  paladin:  { name:'Paladin', de:10, sprite:'cleric', atk:'for', dmgType:'contondant', prio:['for','cha','con','sag','dex','int'],
               arme:'Marteau de guerre', degats:'1d8', portee:1, ca: m => 18, armure:'Cotte de mailles + bouclier',
               desc:'Guerrier sacré, protège ses alliés.' },
-  rodeur:   { name:'Rôdeur', de:10, sprite:'ranger', atk:'dex', prio:['dex','sag','con','for','int','cha'],
+  rodeur:   { name:'Rôdeur', de:10, sprite:'ranger', atk:'dex', dmgType:'perforant', prio:['dex','sag','con','for','int','cha'],
               arme:'Arc long', degats:'1d8', portee:8, saut:2, nage:true, ca: m => 12 + m.dex, armure:'Cuir clouté (12 + DEX)',
               desc:'Archer et pisteur, à l\'aise en pleine nature.' },
-  voleur:   { name:'Voleur', de:8, sprite:'ranger', atk:'dex', prio:['dex','con','int','cha','sag','for'],
+  voleur:   { name:'Voleur', de:8, sprite:'ranger', atk:'dex', dmgType:'perforant', prio:['dex','con','int','cha','sag','for'],
               arme:'Rapière', degats:'1d8', portee:1, saut:2, ca: m => 11 + m.dex, armure:'Armure de cuir (11 + DEX)',
               desc:'Discret et précis, frappe là où ça fait mal.' },
-  mage:     { name:'Mage', de:6, sprite:'mage', atk:'int', prio:['int','con','dex','sag','cha','for'], spell:true,
+  mage:     { name:'Mage', de:6, sprite:'mage', atk:'int', dmgType:'feu', prio:['int','con','dex','sag','cha','for'], spell:true,
               arme:'Trait de feu', degats:'1d10', portee:6, ca: m => 10 + m.dex, armure:'Robe (10 + DEX)',
               desc:'Lanceur de sorts puissant mais fragile.' },
-  clerc:    { name:'Clerc', de:8, sprite:'cleric', atk:'for', prio:['sag','con','for','dex','cha','int'],
+  clerc:    { name:'Clerc', de:8, sprite:'cleric', atk:'for', dmgType:'contondant', prio:['sag','con','for','dex','cha','int'],
               arme:"Masse d'armes", degats:'1d6', portee:1, ca: m => 18, armure:'Cotte de mailles + bouclier',
               desc:'Soigneur et soutien, porte une armure lourde.' },
 };
@@ -62,7 +62,8 @@ const CONDITIONS = [
   { k:'invisible',icon:'👻', name:'Invisible', desc:'avantage à ses attaques ; désavantage contre lui' },
   { k:'concentre',icon:'🧠', name:'Concentration' },
   { k:'beni',     icon:'🌟', name:'Béni', desc:'+1d4 aux jets d\'attaque' },
-  { k:'rage',     icon:'😡', name:'Rage', desc:'+2 aux dégâts' },
+  { k:'rage',     icon:'😡', name:'Rage', desc:'+2 aux dégâts, résistance aux dégâts tranchants, perforants et contondants' },
+  { k:'esquive',  icon:'🛡', name:'Esquive', desc:'désavantage aux attaques contre lui jusqu\'à son prochain tour' },
 ];
 const condOf = k => CONDITIONS.find(c => c.k === k);
 
@@ -75,7 +76,7 @@ const fmtMod = m => (m >= 0 ? '+' : '') + m;
 const proficiency = lvl => 2 + Math.floor((lvl - 1) / 4);
 
 // ---------- Dés ----------
-const rollDie = n => 1 + Math.floor(Math.random() * n);
+const rollDie = n => 1 + Math.floor(rngNext() * n);   // rngNext : hasard à graine (engine.js)
 
 // Lance une formule « 2d6+3 », « d20 », « 1d8+1d6-1 » ; crit = dés doublés
 function rollDice(formula, crit = false) {
@@ -109,7 +110,7 @@ function newSheet() {
   return { id: 's' + Date.now().toString(36) + Math.floor(Math.random() * 1e4), name: 'Nouveau héros', camp: 'hero',
            sprite: 'warrior', level: 1, race: 'humain', cls: 'guerrier', method: 'points',
            base: { for: 15, dex: 13, con: 14, int: 8, sag: 12, cha: 10 }, weapon: '', notes: '', over: {},
-           xp: 0, gold: 10, hpCur: null, inventory: '' };
+           xp: 0, gold: 10, hpCur: null, inventory: '', items: { potion: 1, ration: 5, torche: 2 }, skills: null, uses: null, hd: null };
 }
 
 // Valeurs calculées d'une fiche ; « over » contient les valeurs modifiées à la main

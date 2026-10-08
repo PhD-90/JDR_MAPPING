@@ -5,13 +5,17 @@
 **L'atelier du maître du jeu : carte du monde, cartes de combat en 2D semi-3D, fiches de personnages
 et suivi des combats en direct.**
 
+<a href="docs/visite-guidee.mp4"><img src="docs/visite-guidee.gif" alt="Visite guidée de JDR Mapping : monde, éditeur, personnages, combat, sorts, IA, simulateur, outils du MJ" width="100%"></a>
+
+**🎬 [Regarder la visite guidée en vidéo (MP4, 1 min 10)](docs/visite-guidee.mp4)** · toutes les fonctionnalités en 20 scènes
+
 Génère le monde de ta campagne, suis le groupe de ville en donjon, construis les cartes de combat,
 puis fais jouer l'affrontement : initiative, points de vie, sorts, jets de dés, brouillard de guerre,
 écran pour les joueurs, animations, sons, expérience et montée de niveau.
+Et quand tu veux : **règles strictes**, **IA pour les héros et les monstres**, et **simulateur** qui joue
+une rencontre 200 fois pour en mesurer la difficulté réelle. Le MJ garde toujours la main.
 
 *Aucune installation, aucun compte, aucun serveur : ouvre `index.html` dans ton navigateur.*
-
-![Suivi du combat](docs/images/suivi.png)
 
 </div>
 
@@ -33,7 +37,7 @@ puis fais jouer l'affrontement : initiative, points de vie, sorts, jets de dés,
 <tr>
 <td align="center"><a href="#-écran-des-joueurs-et-brouillard-de-guerre"><img src="docs/images/ecran-joueurs.png" alt="Écran des joueurs"></a><br><b>Écran des joueurs</b><br><sub>brouillard de guerre, figurines cachées</sub></td>
 <td align="center"><a href="#-onglet-outils-mj"><img src="docs/images/outils-mj.png" alt="Outils MJ"></a><br><b>Outils du MJ</b><br><sub>rencontres, PNJ, trésors, quêtes...</sub></td>
-<td align="center"><a href="#-monstres-automatiques"><img src="docs/images/ia-monstres.png" alt="IA"></a><br><b>Monstres automatiques</b><br><sub>déplacement et attaque seuls</sub></td>
+<td align="center"><a href="#-simulateur-de-combat"><img src="docs/images/simulation.png" alt="Simulateur"></a><br><b>Simulateur de combat</b><br><sub>200 combats joués par l'IA en une seconde</sub></td>
 </tr>
 </table>
 
@@ -50,14 +54,16 @@ puis fais jouer l'affrontement : initiative, points de vie, sorts, jets de dés,
 7. [🎲 Jouer un combat](#-jouer-un-combat)
    - [Placer les figurines](#placer-les-figurines) · [Portées](#-portées-de-déplacement-et-dattaque) · [Déroulement](#déroulement-dun-combat)
    - [Attaques](#-attaques-animées) · [Capacités et sorts](#-capacités-et-sorts) · [États](#-états) · [Jets contre la mort](#-jets-contre-la-mort)
-   - [Monstres automatiques](#-monstres-automatiques) · [Panneau de suivi](#-le-panneau-de-suivi) · [Fin du combat](#-fin-du-combat-et-expérience)
-8. [🎭 Outils du MJ](#-outils-du-mj)
-9. [🔊 Sons](#-sons)
-10. [📄 Le fichier de caractéristiques](#-le-fichier-de-caractéristiques)
-11. [💾 Sauvegardes et fichiers](#-sauvegardes-et-fichiers)
-12. [⌨️ Raccourcis](#️-raccourcis)
-13. [❓ Questions fréquentes](#-questions-fréquentes)
-14. [🧩 Pour aller plus loin (code)](#-pour-aller-plus-loin-code)
+   - [Mode MJ ou règles strictes](#-mode-mj-ou-règles-strictes) · [Actions du tour](#-actions-du-tour) · [Statistiques complètes](#-statistiques-complètes)
+   - [Intelligence artificielle](#-intelligence-artificielle) · [Panneau de suivi](#-le-panneau-de-suivi) · [Fin du combat](#-fin-du-combat-et-expérience)
+8. [🧪 Simulateur de combat](#-simulateur-de-combat)
+9. [🎭 Outils du MJ](#-outils-du-mj)
+10. [🔊 Sons](#-sons)
+11. [📄 Le fichier de caractéristiques](#-le-fichier-de-caractéristiques)
+12. [💾 Sauvegardes et fichiers](#-sauvegardes-et-fichiers)
+13. [⌨️ Raccourcis](#️-raccourcis)
+14. [❓ Questions fréquentes](#-questions-fréquentes)
+15. [🧩 Pour aller plus loin (code)](#-pour-aller-plus-loin-code)
 
 ---
 
@@ -90,7 +96,7 @@ puis fais jouer l'affrontement : initiative, points de vie, sorts, jets de dés,
 | 6 | Pose les héros (**Mes personnages**) et les monstres, ou génère une **rencontre équilibrée** et clique **➕ Poser sur la carte de combat**. | 🎲 Jouer / 📜 Outils MJ |
 | 7 | Active le **🌫 brouillard de guerre** et ouvre l'**📺 écran des joueurs** sur la télé. | 🎲 Jouer |
 | 8 | **⚔ Commencer le combat** : l'initiative est lancée, chacun joue à son tour (déplacement, **⚔ Attaquer**, sorts). | 🎲 Jouer |
-| 9 | Laisse les monstres jouer seuls (**🤖**) ou joue-les toi-même. | 🎲 Jouer |
+| 9 | Joue les monstres toi-même, ou confie-les à l'IA (**🤖**). Avant la partie, **🧪 simule** la rencontre pour vérifier sa difficulté. | 🎲 Jouer |
 | 10 | **🏁 Terminer** : l'XP est partagée, les PV sont enregistrés sur les fiches, et on peut monter de niveau. | 🎲 Jouer → 🧙 Personnages |
 
 ---
@@ -147,6 +153,22 @@ La méthode s'inspire de [Red Blob Games](https://www.redblobgames.com/maps/poly
 | Affichage | Royaumes, rivières, montagnes et forêts, noms, **style parchemin** |
 
 Chaque trajet est noté dans le **journal de voyage** (jour, départ, arrivée, distance, terrain traversé).
+
+### Voyages, quêtes et réputation
+
+![Rencontre en chemin, quêtes et réputation](docs/images/voyage-evenements.png)
+
+- **Événements de voyage** : chaque jour de route, une chance sur cinq d'un événement selon le terrain :
+  ⚔ **rencontre** (équilibrée pour le groupe, elle **arrête le voyage** sur place), 💰 découverte, 🧑 voyageur qui raconte
+  une rumeur, 🌦 météo. Une rencontre propose **⚔ Préparer le combat** (carte générée selon le terrain, groupe et
+  monstres déjà placés), **🧪 Simuler** ou **✖ Éviter**.
+- **Vivres** : chaque personnage mange une 🍞 ration par jour de route ; sans vivres, il perd des PV.
+- **📜 Quêtes** : créées depuis le générateur des Outils MJ (**📌 Ajouter aux quêtes**), avec un **❗** sur le lieu
+  visé. **✔ Réussie** partage l'or de la récompense et améliore la réputation ; **✖ Échouée** la fait baisser.
+- **Réputation** par royaume (de −5 à +5, réglable avec − / +) : chaque point fait varier les prix de 5 %.
+- **🛒 Marché** dans les villes, ports et capitales (choix réduit au village) : potions, antidote, parchemin, rations,
+  torches, corde, payés avec l'or de la fiche.
+- **☕ Repos court** (dés de vie, capacités de repos court) et **🛏 Repos long** (PV, capacités, dés de vie, +1 jour).
 
 <div align="center">
 
@@ -274,6 +296,19 @@ Chaque valeur peut être **modifiée à la main** (bordure violette, valeur calc
 - **pièces d'or** et **inventaire** ;
 - pour une fiche **ennemi / PNJ**, le champ XP indique l'expérience rapportée quand il est vaincu.
 
+### Capacités, compétences, objets et repos
+
+![Capacités, compétences et objets](docs/images/fiche-competences.png)
+
+- **Capacités** de la classe avec leurs **utilisations restantes**, conservées d'un combat à l'autre et récupérées au
+  repos (🌙 repos long, ☕ repos court, ⟳ une fois par tour). Certaines se **débloquent avec le niveau**
+  (🏹 Volée de flèches au niveau 2, 🔥 Boule de feu au niveau 3, ⚔ attaque supplémentaire au niveau 5 pour
+  guerrier, barbare, paladin et rôdeur). Le passage de niveau annonce les nouveautés.
+- **Dés de vie** (un par niveau) dépensés au repos court pour regagner des PV ; **sauvegardes maîtrisées** de la classe.
+- **18 compétences** (Perception, Discrétion, Athlétisme, Persuasion...) à cocher, avec leur bonus et la
+  **perception passive**. Celles de la classe sont cochées par défaut.
+- **Objets** chiffrés (potions, antidote, parchemin de boule de feu, rations, torches, corde), utilisables en combat.
+
 Boutons : **➕ Placer sur la carte**, **↻ Mettre à jour les figurines sur la carte** (après une modification de la fiche),
 **⧉ Dupliquer**, **🗑 Supprimer**, **💾 Exporter / 📂 Importer** les fiches.
 
@@ -347,6 +382,61 @@ Le mode **Toutes** affiche les zones de toutes les figurines. Le déplacement pa
 
 Une figurine ajoutée en cours de combat lance son initiative et prend sa place dans l'ordre.
 
+### ⚖ Mode MJ ou règles strictes
+
+| | 🎭 **Mode MJ** (par défaut) | ⚖ **Règles strictes** |
+| --- | --- | --- |
+| Déplacement | Libre, n'importe quelle figurine, n'importe quand | Seulement la figurine dont c'est le tour, dans sa zone verte |
+| Actions | Comptées et affichées, jamais bloquées (✋ MJ si on dépasse) | Une action, une action bonus, une réaction par tour |
+| Attaques d'opportunité | Signalées dans le journal : à toi de décider | Résolues automatiquement |
+| Se relever | Le MJ retire l'état « À terre » | Automatique au début du tour (moitié du déplacement) |
+
+Dans les deux modes, tu peux toujours modifier les PV, les états, les positions (en préparation) et annuler (**Ctrl+Z**).
+Les figurines jouées par l'IA appliquent toujours les règles.
+
+<div align="center">
+
+| Règles et IA | Figurine : actions du tour | Journal de l'IA |
+| --- | --- | --- |
+| ![Mode et IA](docs/images/panneau-regles.png) | ![Actions](docs/images/panneau-actions.png) | ![Journal](docs/images/journal-ia.png) |
+
+</div>
+
+### 🎯 Actions du tour
+
+Le panneau de la figurine affiche ● **Action** ● **Bonus** ● **Réaction** (vides une fois utilisées).
+
+| Action | Coût | Effet |
+| --- | --- | --- |
+| ⚔ Attaquer | action | 1 attaque, 2 avec l'attaque supplémentaire (niveau 5) ou la multiattaque d'un monstre |
+| 🏃 Foncer | action | Déplacement doublé |
+| 🚪 Se désengager | action (bonus pour le gobelin) | Pas d'attaque d'opportunité ce tour |
+| 🛡 Esquiver | action | Désavantage aux attaques contre soi jusqu'à son prochain tour |
+| 🧪 Potion / 💊 antidote | action bonus | Rend des PV / guérit le poison |
+| 📜 Parchemin | action | Lance le sort du parchemin (usage unique) |
+| Capacités | action ou bonus | Voir le tableau des capacités |
+| ⚡ Attaque d'opportunité | réaction | Quand un ennemi quitte le contact sans s'être désengagé |
+
+**Abri** : une attaque à distance contre une cible abritée derrière un obstacle ou une autre créature subit
+**+2 à la CA** (indiqué dans le journal).
+
+### 🧬 Statistiques complètes
+
+Chaque figurine a ses **6 caractéristiques**, ses **sauvegardes** (sorts de zone en DEX, concentration en CON,
+renversement en FOR), un **type de dégâts** et éventuellement des **résistances** (moitié), **immunités** (aucun)
+et **vulnérabilités** (double). Les fiches les calculent ; les figurines de base les lisent dans le fichier TXT.
+
+| Monstre | Particularités |
+| --- | --- |
+| Gobelin | **Fuite agile** : se désengage en action bonus et recule après avoir frappé |
+| Squelette | **Vulnérable** aux dégâts contondants, **immunisé** au poison |
+| Slime | **Immunisé** à l'acide, **résistant** au feu et au froid ; dégâts d'acide |
+| Orc | **Agressif** : fonce vers l'ennemi en action bonus |
+| Loup | **Tactique de meute** (avantage si un allié est au contact de la cible), **renversement** (FOR DD 11 ou à terre) |
+| Dragon | **Multiattaque** (2 attaques), **immunisé** au feu, **souffle** qui se recharge sur 5-6, ne fuit jamais |
+
+Les monstres très blessés dont le camp perd **prennent la fuite**.
+
 ### 💥 Attaques animées
 
 Figurine sélectionnée → **⚔ Attaquer** (ou **A**) → clic sur la cible. Le viseur affiche la **chance de toucher**
@@ -379,19 +469,23 @@ le chiffre s'envole au-dessus de la cible ; une attaque ratée la fait **esquive
 
 Les capacités de la classe apparaissent sous **⚔ Attaquer**, avec leurs **utilisations restantes pour ce combat**.
 
-| Capacité | Effet | Utilisations |
-| --- | --- | --- |
-| 💪 Second souffle | Récupère 1d10 + niveau PV | 1 |
-| 😡 Rage | +2 aux dégâts jusqu'à la fin du combat | 2 |
-| 🙌 Imposition des mains | Soigne 5 × niveau PV à un allié au contact | 1 |
-| 🏹 Volée de flèches | Zone de 3×3 cases à 8 cases, 1d8 + mod. | 1 |
-| 🗡 Attaque sournoise | Attaque avec (niveau ÷ 2) d6 de dégâts en plus | 1 |
-| ✨ Projectile magique | 3 traits qui touchent toujours, 1d4+1 chacun | 3 |
-| 🔥 Boule de feu | Zone de 2 cases de rayon à 8 cases, (2 + niveau ÷ 2) d6 | 2 |
-| 💚 Soins | Soigne 1d8 + mod. à un allié au contact | 2 |
-| 🗣 Mot de guérison | Soigne 1d4 + mod. à un allié à 6 cases | 2 |
-| 🌟 Bénédiction | Les alliés dans la zone gagnent +1d4 à leurs attaques | 1 |
-| 🐉 Souffle de feu (dragon) | Zone de 2 cases de rayon, 6d6, DD 14 | 1 |
+| Capacité | Coût | Effet | Utilisations | Récupération |
+| --- | --- | --- | --- | --- |
+| 💪 Second souffle | bonus | Récupère 1d10 + niveau PV | 1 | ☕ repos court |
+| 😡 Rage | bonus | +2 aux dégâts, résistance aux dégâts physiques, 10 rounds | 2 (3 au niv. 3) | 🌙 repos long |
+| 🙌 Imposition des mains | action | Soigne 5 × niveau PV à un allié au contact | 1 | 🌙 |
+| 🏹 Volée de flèches (niv. 2) | action | Zone de 3×3 cases à 8 cases, 1d8 + mod. perforants | 1 | ☕ |
+| 🗡 Attaque sournoise | attaque | (niveau ÷ 2) d6 en plus, si un allié est au contact de la cible ou avec avantage | 1 par tour | ⟳ |
+| ✨ Projectile magique | action | 3 traits de force qui touchent toujours, 1d4+1 chacun | 2 + niveau ÷ 2 | 🌙 |
+| 🔥 Boule de feu (niv. 3) | action | Zone de 2 cases de rayon à 8 cases, (2 + niveau ÷ 2) d6 de feu | 1 (2 au niv. 5) | 🌙 |
+| 💚 Soins | action | Soigne 1d8 + mod. à un allié au contact | 1 + niveau ÷ 2 | 🌙 |
+| 🗣 Mot de guérison | bonus | Soigne 1d4 + mod. à un allié à 6 cases | 1 + niveau ÷ 2 | 🌙 |
+| 🌟 Bénédiction | action | +1d4 aux attaques des alliés de la zone, 10 rounds, **concentration** | 1 | 🌙 |
+| 🐉 Souffle de feu (dragon) | action | Zone de 2 cases de rayon, 6d6 de feu, DD 14 | 1 | 🎲 recharge sur 5-6 |
+
+Les fiches gardent leurs utilisations restantes d'un combat à l'autre ; les figurines de base et les monstres les
+récupèrent à chaque combat. **Concentration** : un lanceur blessé fait une sauvegarde de CON (DD 10 ou moitié
+des dégâts) pour maintenir son sort.
 
 Les sorts de zone affichent un **gabarit** : portée du lanceur, zone, figurines touchées, et un avertissement
 si des **alliés** sont dedans. Chaque cible fait un **jet de sauvegarde de DEX** contre le DD du lanceur
@@ -421,7 +515,10 @@ Cliquables dans le panneau de la figurine ; leurs icônes s'affichent au-dessus 
 | 👻 Invisible | Avantage à ses attaques ; désavantage contre lui |
 | 🧠 Concentration | Rappel visuel (sort maintenu) |
 | 🌟 Béni | +1d4 à ses jets d'attaque |
-| 😡 Rage | +2 aux dégâts |
+| 😡 Rage | +2 aux dégâts au contact, résistance aux dégâts tranchants, perforants et contondants |
+| 🛡 Esquive | Désavantage aux attaques contre lui jusqu'à son prochain tour |
+
+Les états posés par les capacités ont une **durée** en rounds et disparaissent seuls (« ⌛ ... prend fin »).
 
 **Avantage / désavantage** : on lance 2d20 et on garde le meilleur ou le pire ; ils s'annulent. Le journal indique
 les deux dés et la raison. Une figurine **cachée** qui attaque se révèle.
@@ -438,14 +535,30 @@ il lance un d20 :
 
 Le suivi affiche ses jets (`✔✖✖`). Les monstres à 0 PV sont simplement hors de combat.
 
-### 🤖 Monstres automatiques
+### 🤖 Intelligence artificielle
 
-**🤖 Jouer le tour de ce monstre** (ou l'option **Les monstres jouent seuls** pour enchaîner) fait agir le monstre actif :
+Chaque figurine est jouée **par le MJ** (par défaut) ou **par l'IA** :
 
-1. s'il peut toucher **au moins deux ennemis sans allié** avec une capacité de zone (souffle du dragon), il l'utilise ;
-2. sinon il choisit la meilleure case de sa zone verte d'où il peut attaquer, en visant les **cibles affaiblies**
-   et en **gardant ses distances** s'il attaque de loin, puis attaque ;
-3. si personne n'est à portée, il se rapproche de l'ennemi le plus proche.
+- options **🤖 Monstres joués par l'IA** et **🤖 Héros joués par l'IA** ;
+- réglage **Contrôle** par figurine (🎭 MJ, 🤖 IA ou selon l'option du camp) : par exemple un PNJ allié à l'IA ;
+- bouton **🤖 Jouer le tour de...** pour faire jouer une seule fois la figurine active ;
+- **vitesse** ×0,5 à ×4 et **⏸ Pause**. Avec les deux options cochées, le combat se joue tout seul : **mode spectateur**.
+
+L'IA joue selon le **rôle** de la figurine (réglable dans son panneau) :
+
+| Rôle | Comportement |
+| --- | --- |
+| 🛡 Tank (guerrier, barbare, paladin) | Va au contact, protège les alliés menacés, rage dès le premier tour |
+| 💚 Soigneur (clerc) | Relève les alliés à terre, soigne sous la moitié des PV, bénit le groupe, puis attaque |
+| 🔥 Lanceur de sorts (mage) | Boule de feu si au moins 2 ennemis sans allié, sinon projectile magique sur le plus faible |
+| 🏹 Tireur (rôdeur, monstres à distance) | Garde ses distances, cherche la hauteur, volée de flèches sur les groupes |
+| 🗡 Escarmoucheur (voleur) | Attaque les ennemis déjà au contact d'un allié (attaque sournoise) |
+| 💥 Brute (monstres) | Vise les cibles faibles ; tactique de meute, renversement, fuite selon ses traits |
+
+Tous boivent une potion sous 35 % de PV s'ils en ont, visent en priorité soigneurs et lanceurs de sorts, et
+**foncent** si personne n'est à portée.
+
+![Mode spectateur](docs/images/spectateur.png)
 
 ![Tour automatique d'un monstre et jet contre la mort](docs/images/ia-monstres.png)
 
@@ -476,6 +589,32 @@ tous les ennemis sont hors de combat.
 
 ---
 
+## 🧪 Simulateur de combat
+
+**🧪 Simuler ce combat** (onglet Jouer), **🧪 Tester (simulation)** (générateur de rencontres) ou **🧪 Simuler**
+(rencontre en voyage) joue le combat **des dizaines ou des centaines de fois**, toutes les figurines à l'IA, en
+règles strictes, sans affichage, sur une **copie** de la carte (relief, obstacles et positions compris).
+Ta carte n'est jamais modifiée.
+
+![Simulation d'un combat](docs/images/simulation.png)
+
+Le rapport donne :
+
+- un **verdict** (Facile, Moyenne, Difficile, Mortelle, Massacre) ;
+- la part de **victoires**, de **défaites** et de combats non terminés, et la **durée** en rounds ;
+- pour chaque personnage : probabilité de **tomber** et de **mourir**, PV restants, dégâts infligés, ennemis mis KO ;
+- pour chaque monstre : probabilité d'être vaincu et dégâts infligés, avec le **plus dangereux**.
+
+Réglages : nombre de combats, rounds maximum, PV pleins ou actuels, **graine** (même graine = mêmes résultats).
+Le hasard du jeu est à graine : un combat simulé peut être rejoué à l'identique.
+
+> 💡 Les seuils d'XP du Guide du maître sont une estimation ; la simulation mesure la difficulté **réelle**, sur ta
+> carte. Ci-dessous, une rencontre annoncée « difficile » se révèle « moyenne » pour ce groupe.
+
+![Tester une rencontre](docs/images/simulation-rencontre.png)
+
+---
+
 ## 🎭 Outils du MJ
 
 ### 📺 Écran des joueurs et brouillard de guerre
@@ -498,6 +637,7 @@ en direct (déplacements, PV, animations, dégâts, sons) et **ne montre que ce 
 | 🙈 **Figurines cachées** | Transparentes pour le MJ, invisibles pour les joueurs : idéal pour les embuscades |
 | 📌 **Marqueurs secrets** | ⚠️ piège, 💰 trésor, 🚪 passage secret, 🔍 indice, ☠️ danger, 📝 note, avec un texte. MJ seulement |
 | 👁 **Voir comme les joueurs** | Aperçu, dans la fenêtre du MJ, de l'écran des joueurs |
+| 🪤 **Pièges et secrets automatiques** | Un personnage qui passe à 2 cases d'un marqueur piège, passage secret, trésor ou indice le **repère** si sa perception passive atteint le DD écrit dans le texte (« DD 13 »). Un piège non repéré se **déclenche** quand on marche dessus : sauvegarde de DEX, dégâts lus dans le texte (« 2d6 perforant ») |
 
 Côté joueurs : brouillard opaque, rien de ce qui s'y trouve n'est dessiné, figurines cachées invisibles, PV des monstres,
 zones de portée et marqueurs masqués, et un bandeau « lieu · round · tour de... ». On y déplace et zoome la vue ; **F** recentre.
@@ -508,10 +648,11 @@ zones de portée et marqueurs masqués, et un bandeau « lieu · round · tour d
 
 | Générateur | Résultat |
 | --- | --- |
-| ⚔ **Rencontre aléatoire** | Monstres équilibrés selon le nombre et le niveau des personnages (seuils d'XP du Guide du maître, multiplicateur selon le nombre de monstres) et le terrain (proposé selon le lieu de la carte). **➕ Poser sur la carte de combat** les place loin du groupe, **cachés** si on veut une embuscade |
+| ⚔ **Rencontre aléatoire** | Monstres équilibrés selon le nombre et le niveau des personnages (seuils d'XP du Guide du maître, multiplicateur selon le nombre de monstres) et le terrain (proposé selon le lieu de la carte). **➕ Poser sur la carte de combat** les place loin du groupe, **cachés** si on veut une embuscade ; **🧪 Tester** la simule |
+| 🎯 **Test de compétence** | Compétence, DD, normal / avantage / désavantage, personnages concernés (avec leur perception passive) : chacun lance, réussite du groupe si la moitié réussit |
 | 🧑 **PNJ** | Nom, race, métier, signe distinctif, caractère, motivation et secret ; **📜 Créer sa fiche** |
 | 💰 **Trésor** | Or et objets selon le niveau ; **➗ Partager l'or** entre les fiches des personnages |
-| 📜 **Quête** | Commanditaire, objectif, lieu de ton monde, complication, récompense |
+| 📜 **Quête** | Commanditaire, objectif, lieu de ton monde, complication, récompense ; **📌 Ajouter aux quêtes** du monde |
 | 🗣 **Rumeur** | Vraie ou fausse (indiqué au MJ seulement) |
 | 🍺 **Taverne** | Nom, tenancier, spécialité, prix, rumeur entendue |
 | 🌦 **Météo** | Selon le climat et la saison, avec ses effets en jeu |
@@ -546,6 +687,7 @@ cout_descente        = 1     # +1 case par niveau descendu
 bonus_portee_hauteur = 1     # +1 case de portée à distance par niveau au-dessus de la cible
 melee_hauteur_max    = 1     # corps à corps impossible au-delà de cet écart de hauteur
 ligne_de_vue         = oui   # tirs bloqués par murs, maisons, arbres, colonnes
+# (règles strictes : case à cocher dans l'onglet Jouer)
 
 [terrain]
 boue = 2        # coût en cases ; sol non listé = 1
@@ -575,6 +717,13 @@ xp          = 0      # XP gagnée par le groupe quand la figurine est vaincue
 | `vol` / `nage` | `oui` / `non` |
 | `pv`, `ca`, `toucher`, `degats`, `init` | Statistiques de combat |
 | `xp` | Expérience rapportée par un monstre vaincu |
+| `niveau` | Niveau (débloque des capacités ; 3 pour les héros de base) |
+| `carac` | Les 6 caractéristiques : FOR DEX CON INT SAG CHA (ex. `12 15 12 3 12 6`) |
+| `sauvegardes`, `maitrise` | Sauvegardes maîtrisées (ex. `dex con`) et bonus de maîtrise |
+| `type_degats` | tranchant, perforant, contondant, feu, froid, acide, poison, foudre, force, necrotique, radiant |
+| `resistances`, `immunites`, `vulnerabilites` | Types de dégâts divisés par 2, annulés, doublés |
+| `multiattaque` | Attaques par action |
+| `traits` | `meute`, `renversement`, `fuite_agile`, `agressif`, `sans_peur` |
 
 **Charger le fichier modifié** :
 
@@ -673,11 +822,28 @@ Une figurine garde une copie des valeurs de sa fiche. Clique **↻ Mettre à jou
 </details>
 
 <details>
+<summary><b>Le MJ garde-t-il le contrôle avec les règles strictes et l'IA ?</b></summary>
+
+Oui. Par défaut tout est en **mode MJ** : rien n'est bloqué, les règles sont seulement comptées. Les règles strictes et
+l'IA s'activent par des cases à cocher, et chaque figurine peut être reprise en main (**Contrôle : 🎭 MJ**).
+Tu peux mettre l'IA en pause à tout moment, modifier les PV et les états, et annuler avec **Ctrl+Z**.
+</details>
+
+<details>
+<summary><b>Pourquoi la simulation ne donne-t-elle pas la difficulté annoncée par le générateur ?</b></summary>
+
+Le générateur utilise les seuils d'XP du Guide du maître, une estimation générale. La simulation joue réellement le
+combat sur ta carte, avec le relief, les obstacles, les capacités de chacun et l'IA : elle mesure la difficulté pour
+**ce** groupe, **ici**. L'IA joue correctement mais pas parfaitement ; de vrais joueurs peuvent faire mieux (ou pire).
+</details>
+
+<details>
 <summary><b>Le jeu suit-il exactement les règles de D&D ?</b></summary>
 
 Il s'en inspire fortement (caractéristiques, classes, avantage, jets contre la mort, table d'XP...) avec des simplifications
-pour rester rapide à jouer : les capacités ont des utilisations par combat, les sauvegardes de zone utilisent le bonus
-d'initiative, la ligne de vue est calculée case par case. Tout reste modifiable à la main par le MJ.
+pour rester rapide à jouer : une sélection de capacités par classe, un seul emplacement de sort par capacité,
+pas d'obscurité ni de vision dans le noir, une ligne de vue calculée case par case, un abri simplifié (+2).
+Tout reste modifiable à la main par le MJ.
 </details>
 
 ---
@@ -692,6 +858,7 @@ index.html                 Page, onglets et panneaux
 css/style.css              Styles
 data/caracteristiques.txt  Règles de déplacement et statistiques des figurines de base
 docs/images/               Images de ce README
+docs/visite-guidee.*       Visite guidée (GIF en tête du README, vidéo MP4)
 
 js/config.js     Sols (FLOORS) et éléments (OBJECTS)
 js/utils.js      Couleurs, bruit, aléatoire
@@ -702,6 +869,8 @@ js/stats.js      Lecture du fichier de caractéristiques (copie intégrée)
 js/ranges.js     Zones de déplacement et d'attaque, ligne de vue
 js/anims.js      Animations d'attaque et de zone, chiffres qui s'envolent
 js/rules.js      Règles : caractéristiques, races, classes, états, dés, table d'XP
+js/engine.js     Moteur de règles : mode MJ / règles strictes, hasard à graine, économie d'actions, sauvegardes,
+                 types de dégâts, abri, durée des états, concentration, attaques d'opportunité
 js/render.js     Rendu de la carte en 2D semi-3D
 js/editor.js     Ajout / suppression, pinceau, annulation
 js/presets.js    Presets de carte générés
@@ -710,10 +879,15 @@ js/combat.js     Initiative, PV, attaques, états, jets contre la mort, journal,
 js/chars.js      Onglet Personnages : fiches et progression
 js/fog.js        Brouillard de guerre, marqueurs secrets, écran des joueurs
 js/sfx.js        Effets sonores synthétisés
-js/actions.js    Capacités et sorts, ciblage, monstres automatiques
+js/actions.js    Capacités et sorts, actions standard, ciblage
+js/items.js      Objets, inventaire, marché
+js/skills.js     Compétences, perception passive, pièges et secrets automatiques
+js/ai.js         IA des héros et des monstres (rôles, traits, moral), mode spectateur
+js/sim.js        Simulateur de combat et rapport
 js/gmtools.js    Onglet Outils MJ : générateurs, notes, aide-mémoire
 js/worldgen.js   Génération du monde : relief, rivières, climat, biomes, royaumes, lieux
 js/world.js      Onglet Monde : affichage, voyages, lieux, cartes liées, campagne
+js/campaign.js   Événements de voyage, vivres, quêtes, réputation, marché, repos
 js/input.js      Souris et clavier (éditeur)
 js/ui.js         Panneaux, palettes, réglages de carte
 js/io.js         Sauvegarde, chargement, export PNG
@@ -726,7 +900,11 @@ js/main.js       Démarrage
 | Un élément | `OBJECTS` (`js/config.js`) et, si nouvelle forme, un `case` dans `drawObj` (`js/render.js`) |
 | Une figurine | `SPRITES` (`js/sprites.js`, dessin 16×16, une lettre par couleur), sa section dans `data/caracteristiques.txt`, son animation dans `ATTACKS` (`js/anims.js`) |
 | Une race / une classe | `RACES` / `CLASSES` (`js/rules.js`) ; capacités de la classe dans `CLASS_ACTIONS` (`js/actions.js`) |
-| Une capacité / un sort | `ACTIONS` (`js/actions.js`) |
+| Une capacité / un sort | `ACTIONS` (`js/actions.js`) : coût, récupération, niveau requis, type de dégâts |
+| Un objet | `ITEMS` et `SHOP` (`js/items.js`) |
+| Une compétence | `SKILLS` et `CLASS_SKILLS` (`js/skills.js`) |
+| Un trait de monstre | clé `traits` dans `data/caracteristiques.txt`, effet dans `attack` / `attackMods` (`js/combat.js`) et l'IA (`js/ai.js`) |
+| Un rôle d'IA | `ROLES` et `bestAttackSpot` (`js/ai.js`) |
 | Un état | `CONDITIONS` (`js/rules.js`) ; son effet dans `attackMods` (`js/combat.js`) |
 | Un preset | `PRESETS` (`js/presets.js`) avec une fonction `gen(g, deco)` |
 | Un type de lieu | `LOC_TYPES` (`js/worldgen.js`) et son preset de combat dans `LOC_PRESET` (`js/world.js`) |

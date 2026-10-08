@@ -53,6 +53,16 @@ colonne = x
 #  degats      = dés de dégâts (ex. 1d8+3, 2d6)
 #  init        = bonus d'initiative (d20 + init)
 #  xp          = expérience gagnée par le groupe quand le monstre est vaincu
+#  --- bloc de statistiques complet (sauvegardes, simulation, IA) ---
+#  niveau          = niveau (débloque certaines capacités)
+#  carac           = FOR DEX CON INT SAG CHA
+#  sauvegardes     = caractéristiques maîtrisées aux jets de sauvegarde (ex. dex con)
+#  maitrise        = bonus de maîtrise (2 par défaut)
+#  type_degats     = tranchant, perforant, contondant, feu, froid, acide, poison, foudre, force, necrotique, radiant
+#  resistances / immunites / vulnerabilites = types de dégâts (moitié / aucun / double)
+#  multiattaque    = nombre d'attaques par action
+#  traits          = meute (avantage si un allié est au contact de la cible), renversement (cible à terre),
+#                    fuite_agile (se désengage en action bonus), agressif (fonce en action bonus), sans_peur (ne fuit jamais)
 #  Les fiches créées dans l'onglet « Personnages » ont leurs propres valeurs.
 # ---------------------------------------------------------------------
 
@@ -69,6 +79,10 @@ ca          = 18
 toucher     = +5
 degats      = 1d8+3
 init        = +1
+niveau          = 3
+carac           = 16 13 14 8 12 10
+sauvegardes     = for con
+type_degats     = tranchant
 
 [Mage]
 deplacement = 5
@@ -81,6 +95,10 @@ ca          = 12
 toucher     = +5
 degats      = 1d10
 init        = +2
+niveau          = 3
+carac           = 8 14 13 16 12 10
+sauvegardes     = int sag
+type_degats     = feu
 
 [Rôdeuse]
 deplacement = 6
@@ -93,6 +111,10 @@ ca          = 15
 toucher     = +6
 degats      = 1d8+3
 init        = +3
+niveau          = 3
+carac           = 12 16 13 10 14 8
+sauvegardes     = for dex
+type_degats     = perforant
 
 [Clerc]
 deplacement = 5
@@ -105,6 +127,10 @@ ca          = 18
 toucher     = +4
 degats      = 1d6+2
 init        = +0
+niveau          = 3
+carac           = 14 10 13 10 16 12
+sauvegardes     = sag cha
+type_degats     = contondant
 
 # ----- Monstres -----
 
@@ -120,6 +146,9 @@ toucher     = +4
 degats      = 1d6+2
 init        = +2
 xp          = 50
+carac           = 8 14 10 10 8 8
+type_degats     = tranchant
+traits          = fuite_agile
 
 [Squelette]
 deplacement = 5
@@ -133,6 +162,10 @@ toucher     = +4
 degats      = 1d6+2
 init        = +2
 xp          = 50
+carac           = 10 14 15 6 8 5
+type_degats     = perforant
+vulnerabilites  = contondant
+immunites       = poison
 
 [Slime]
 deplacement = 3
@@ -146,6 +179,10 @@ toucher     = +3
 degats      = 1d6+1
 init        = -2
 xp          = 100
+carac           = 12 6 16 1 6 2
+type_degats     = acide
+immunites       = acide
+resistances     = feu froid
 
 [Orc]
 deplacement = 6
@@ -159,6 +196,9 @@ toucher     = +5
 degats      = 1d12+3
 init        = +1
 xp          = 100
+carac           = 16 12 16 7 11 10
+type_degats     = tranchant
+traits          = agressif
 
 [Loup]
 deplacement = 8
@@ -172,6 +212,9 @@ toucher     = +4
 degats      = 2d4+2
 init        = +2
 xp          = 50
+carac           = 12 15 12 3 12 6
+type_degats     = perforant
+traits          = meute renversement
 
 [Dragon]
 deplacement = 8
@@ -185,6 +228,13 @@ toucher     = +7
 degats      = 2d10+4
 init        = +0
 xp          = 2300
+carac           = 19 10 17 12 11 15
+sauvegardes     = dex con sag cha
+maitrise        = 3
+type_degats     = perforant
+immunites       = feu
+multiattaque    = 2
+traits          = sans_peur
 `;
 
 let STATS = null, statsSource = '';
@@ -227,14 +277,22 @@ function loadStats(txt, source) { STATS = parseStats(txt); statsSource = source;
 function unitStats(u) {
   const b = (STATS && STATS.units[u.sprite]) || {};
   const stuck = (u.conds || []).some(k => condOf(k)?.move0) || (u.hp !== undefined && u.hp <= 0);
-  return { deplacement: stuck ? 0 : (u.mov ?? b.deplacement ?? 5), attaque: u.atk ?? b.attaque ?? 1,
+  let dep = u.mov ?? b.deplacement ?? 5;
+  if (u.act && u.act.standUp) dep = Math.floor(dep / 2);   // se relever coûte la moitié du déplacement
+  if (u.act && u.act.dash) dep *= 2;                       // foncer double le déplacement
+  return { deplacement: stuck ? 0 : dep, attaque: u.atk ?? b.attaque ?? 1,
            saut: u.saut ?? b.saut ?? 1, vol: u.vol ?? !!b.vol, nage: u.nage ?? !!b.nage };
 }
 // Statistiques de combat par défaut d'un type de figurine (fichier de caractéristiques)
 function spriteCombat(key) {
   const b = (STATS && STATS.units[key]) || {};
-  return { hpMax: b.pv ?? 10, ca: b.ca ?? 12, toucher: b.toucher ?? 3, degats: String(b.degats ?? '1d6+1'), init: b.init ?? 0, xp: b.xp ?? 0 };
+  const ab = {}, cs = listOf(b.carac).map(Number);
+  AB_KEYS.forEach((k, i) => { ab[k] = cs[i] || 10; });
+  return { hpMax: b.pv ?? 10, ca: b.ca ?? 12, toucher: b.toucher ?? 3, degats: String(b.degats ?? '1d6+1'), init: b.init ?? 0, xp: b.xp ?? 0,
+           ab, saveProf: listOf(b.sauvegardes), prof: b.maitrise ?? 2, dmgType: b.type_degats || '', lvl: b.niveau ?? 1,
+           resist: listOf(b.resistances), immun: listOf(b.immunites), vuln: listOf(b.vulnerabilites), multi: b.multiattaque || 1, traits: listOf(b.traits) };
 }
+const listOf = v => v === undefined || v === null || v === false ? [] : String(v).split(/[\s,;]+/).filter(Boolean);
 // Camp d'une figurine : 'hero' (personnages) ou 'monster'
 const unitKind = u => u.camp || (SPRITES[u.sprite] || {}).kind || 'monster';
 const isKO = u => u.hp !== undefined && u.hp <= 0;

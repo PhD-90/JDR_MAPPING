@@ -222,3 +222,52 @@ ul.ref { margin:4px 0; padding-left:16px; font-size:12px; line-height:1.5; }
 .act-btn:hover { border-color:#9a7ae0; } .act-btn.on { background:#4a3a7a; border-color:#c0a0ff; }
 .sound-btn { margin-left:auto; padding:4px 10px; font-size:15px; }
 .sound-btn + .map-loc { margin-left:6px; }
+
+/* ----- Règles, IA, simulation ----- */
+.mode-box { background:#1a1d23; border:1px solid #33384a; border-radius:8px; padding:6px 8px; margin:-2px 0 10px; }
+.mode-box label { margin:3px 0; font-size:12px; } .mode-box p { margin:0 0 4px; }
+.mode-badge { display:inline-block; padding:2px 8px; border-radius:10px; font-weight:700; font-size:12px; }
+.mode-badge.gm { background:#2c3a4a; color:#cfe0ff; } .mode-badge.rules { background:#4a3a1a; color:#ffd88a; }
+.ai-row { align-items:center; } .ai-row label { margin:0; } .ai-row button { flex:0 0 auto; }
+.eco-row { display:flex; flex-wrap:wrap; gap:4px; margin:6px 0; }
+.eco { font-size:11px; padding:2px 6px; border-radius:10px; background:#22252c; color:#6a7080; }
+.eco.on { background:#24402a; color:#9ae0a0; } .eco.warn { background:#4a3a1a; color:#ffd88a; }
+.std-list { display:flex; flex-wrap:wrap; gap:3px; margin-top:3px; } .std-btn { padding:3px 7px; font-size:12px; }
+#uRole { max-width:120px; }
+.modal { position:fixed; inset:0; background:#000a; display:flex; align-items:center; justify-content:center; z-index:50; }
+.modal-box { background:var(--panel); border:1px solid #3a3f4b; border-radius:12px; width:min(720px, 94vw); max-height:90vh; overflow-y:auto; padding:14px 18px; }
+.modal-head { display:flex; justify-content:space-between; align-items:center; font-size:15px; margin-bottom:8px; }
+.sim-form { align-items:center; } .sim-form label { margin:0; }
+.sim-progress { height:10px; background:#0e1014; border-radius:5px; overflow:hidden; margin-top:10px; }
+.sim-progress i { display:block; height:100%; width:0; background:var(--acc); transition:width .1s; }
+.sim-verdict { display:flex; flex-direction:column; padding:10px 14px; border-radius:8px; margin:10px 0; }
+.sim-verdict b { font-size:20px; } .sim-verdict.easy { background:#24402a; } .sim-verdict.medium { background:#3a3a1a; }
+.sim-verdict.hard { background:#4a2f18; } .sim-verdict.deadly { background:#4a1f1f; }
+.sim-bar3 { display:flex; height:22px; border-radius:6px; overflow:hidden; background:#0e1014; }
+.sim-bar3 i { display:flex; align-items:center; justify-content:center; font-style:normal; font-size:11px; font-weight:700; color:#fff; }
+.sim-bar3 .w, .sim-legend .w { background:#3cc86a; color:#3cc86a; } .sim-bar3 .d, .sim-legend .d { background:#8a8f99; color:#8a8f99; }
+.sim-bar3 .l, .sim-legend .l { background:#e04a3a; color:#e04a3a; }
+.sim-bar3 i { color:#fff; } .sim-legend { font-size:12px; margin:4px 0 8px; } .sim-legend span { background:none !important; }
+.sim-table { width:100%; border-collapse:collapse; font-size:12px; margin:8px 0; }
+.sim-table th, .sim-table td { padding:3px 6px; border-bottom:1px solid #2a2e37; text-align:center; } .sim-table td:first-child, .sim-table th:first-child { text-align:left; }
+/* ----- Fiches : capacités, compétences, objets ----- */
+.sh-acts { display:flex; flex-wrap:wrap; gap:6px; } .sh-act { background:#2a2440; border:1px solid #5a4a8a; border-radius:6px; padding:4px 8px; font-size:12px; }
+.sh-act.locked { opacity:.5; background:var(--panel2); border-color:#3a3f4b; }
+#shHd { margin-top:6px; }
+.sh-skills { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:2px 10px; }
+.sh-skill { justify-content:flex-start; color:var(--txt); font-size:12px; margin:1px 0; } .sh-skill b { color:var(--acc); } .sh-skill.on { color:#fff; }
+.sh-items { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:4px 10px; }
+.sh-item { display:flex; align-items:center; gap:6px; font-size:12px; padding:3px 6px; background:var(--panel); border-radius:6px; opacity:.6; }
+.sh-item.on { opacity:1; } .sh-item button:first-of-type { margin-left:auto; } .sh-item b { min-width:16px; text-align:center; }
+#shRestOut { margin-top:6px; min-height:14px; color:#9ae0a0; }
+/* ----- Outils MJ : test de compétence ----- */
+.chk-who { display:flex; flex-wrap:wrap; gap:4px 14px; margin:6px 0; } .chk-item { margin:0; gap:4px; justify-content:flex-start; color:var(--txt); }
+/* ----- Monde : rencontre, quêtes, réputation, marché ----- */
+.pending { background:#4a1f1f; border:1px solid #a33; border-radius:8px; padding:8px; margin-bottom:10px; display:flex; flex-direction:column; gap:5px; }
+.quest { background:#1a1d23; border-left:3px solid #ffd23c; border-radius:4px; padding:5px 8px; margin-bottom:5px; font-size:12px; }
+.quest.done { border-left-color:#3cc86a; opacity:.7; } .quest.failed { border-left-color:#e04a3a; opacity:.6; }
+.quest-top { display:flex; justify-content:space-between; align-items:center; gap:6px; } .quest .muted { margin:3px 0; white-space:pre-wrap; }
+.reg-row { cursor:pointer; background:var(--panel2); border:1px solid #3a3f4b; border-radius:6px; } .reg-row .ellip { flex:1; }
+.rep { display:flex; align-items:center; gap:3px; font-size:11px; white-space:nowrap; }
+.shop { display:flex; flex-direction:column; gap:3px; } .shop-item { display:flex; justify-content:space-between; text-align:left; font-size:12px; padding:4px 8px; }
+.shop-item b { color:var(--acc); }
