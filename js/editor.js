@@ -40,4 +40,8 @@ function undo() {
   map = JSON.parse(undoStack.pop());
   select(null); playSel = null; syncMapUI(); syncPlayUI(); changed();
 }
-function changed() { invalidateZones(); redraw(); try { localStorage.setItem('jdr-map', JSON.stringify(map)); } catch (e) {} }
+function changed() {
+  invalidateZones();
+  if (PLAYER_VIEW) { redraw(); return; }
+  if (map.fogOn && map.fogAuto !== false) revealAroundHeroes();
+  redraw(); onMapChanged(); try { localStorage.setItem('jdr-map', JSON.stringify(map)); } catch (e) {} }

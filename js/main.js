@@ -7,8 +7,11 @@ function resize() {
 }
 window.addEventListener('resize', resize);
 
+initStats();   // avant la carte : les figurines y prennent leurs PV, CA...
 try {
   const saved = localStorage.getItem('jdr-map');
   if (saved) { const m = JSON.parse(saved); if (m.cols && m.floor) map = normalizeMap(m); }
 } catch (e) {}
-initStats(); buildPalettes(); buildPlayPalettes(); setTool('object'); setMode('edit'); fit();
+buildPalettes(); buildPlayPalettes(); initChars(); loadWorld(); setTool('object');
+if (PLAYER_VIEW) { initPlayerView(); setMode('play'); } else setMode('edit');
+fit();

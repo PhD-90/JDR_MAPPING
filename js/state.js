@@ -10,16 +10,23 @@ let drag = null, spaceDown = false;
 
 function newMap(cols, rows) {
   return { cols, rows, floor:Array(cols*rows).fill('stone'), height:Array(cols*rows).fill(0),
-           objects:[], units:[], turn:0, depth:0.5, grid:true, nextId:1 };
+           objects:[], units:[], turn:0, order:[], active:0, log:[], depth:0.5, grid:true, nextId:1 };
 }
 // Complète une carte enregistrée par une version précédente
 function normalizeMap(m) {
   if (!m.height || m.height.length !== m.cols*m.rows) m.height = Array(m.cols*m.rows).fill(0);
   if (!m.units) m.units = [];
-  if (m.turn === undefined) m.turn = 0;   // 0 = préparation, 1+ = tour de combat
+  if (m.turn === undefined) m.turn = 0;   // 0 = préparation, 1+ = round de combat
+  if (!m.order) m.order = [];             // ordre d'initiative (ids des figurines)
+  if (!m.active) m.active = 0;            // index de la figurine dont c'est le tour
+  if (!m.log) m.log = [];                 // journal du combat
+  if (!m.marks) m.marks = [];             // marqueurs secrets du MJ
+  if (m.fogOn && (!m.fog || m.fog.length !== m.cols * m.rows)) m.fog = Array(m.cols * m.rows).fill(0);
+  if (m.turn > 0 && !m.order.length) m.turn = 0;   // ancienne sauvegarde sans initiative : retour en préparation
   m.units.forEach(u => {
     if (u.sx === undefined) { u.sx = u.x; u.sy = u.y; }
     if (u.ox === undefined) { u.ox = u.sx; u.oy = u.sy; }   // position au début du combat
+    ensureCombat(u);
   });
   return m;
 }

@@ -9,8 +9,13 @@
 <body class="mode-edit">
 <header id="tabs">
   <div class="brand">⚔ Map JDR</div>
+  <button class="tab" data-mode="world">🌍 Monde</button>
   <button class="tab" data-mode="edit">🛠 Éditeur</button>
   <button class="tab" data-mode="play">🎲 Jouer la carte</button>
+  <button class="tab" data-mode="chars">🧙 Personnages</button>
+  <button class="tab" data-mode="gm">📜 Outils MJ</button>
+  <button id="btnSound" class="sound-btn">🔊</button>
+  <button id="mapLocTag" class="map-loc hidden" title="Lieu du monde lié à cette carte de combat"></button>
 </header>
 
 <div id="app">
@@ -38,6 +43,10 @@
 
   <!-- ===== Jouer : panneau gauche ===== -->
   <aside id="playLeft" class="play-only">
+    <div id="sheetPalBox">
+      <h2>Mes personnages</h2>
+      <div class="grid" id="sheetPal"></div>
+    </div>
     <h2>Personnages</h2>
     <div class="grid" id="heroPal"></div>
     <h2>Monstres</h2>
@@ -51,9 +60,10 @@
   <main>
     <canvas id="cv"></canvas>
     <div id="attackHint" class="hidden"></div>
+    <div id="playerBanner"></div>
     <div id="help">
       <span class="edit-only">Clic gauche : poser · Clic droit : supprimer · Molette : zoom · Clic molette / Espace+glisser : déplacer la vue · R : pivoter · Suppr : effacer · Ctrl+Z : annuler · Ctrl+D : dupliquer</span>
-      <span class="play-only">A : attaquer · Survoler/sélectionner : portées (vert = déplacement, rouge = attaque) · Glisser : déplacer une figurine · Clic droit : retirer · Flèches : déplacer d'une case · Molette : zoom · Espace+glisser : déplacer la vue · Ctrl+Z : annuler</span>
+      <span class="play-only">A : attaquer · Entrée : fin du tour · Survoler/sélectionner : portées (vert = déplacement, rouge = attaque) · Glisser : déplacer une figurine · Clic droit : retirer · Flèches : déplacer d'une case · Molette : zoom · Espace+glisser : déplacer la vue · Ctrl+Z : annuler</span>
     </div>
   </main>
 
@@ -99,20 +109,111 @@
     <p class="muted">La carte est aussi sauvegardée automatiquement dans le navigateur.</p>
   </aside>
 
+  <!-- ===== Monde ===== -->
+  <aside id="worldLeft" class="world-only">
+    <h2>Monde</h2>
+    <input id="wName" class="w-name" type="text">
+    <div class="w-day">📅 Jour <b id="wDay"></b>
+      <button id="wNext" class="mini" title="Faire passer une journée">+1 jour</button>
+      <button id="wRest" class="mini" title="Le groupe récupère tous ses PV (+1 jour)">🛏 Repos long</button>
+    </div>
+
+    <h2>Lieux</h2>
+    <div class="row"><input id="wSearch" type="text" placeholder="Rechercher..."><select id="wFilter"><option value="">Tous</option></select></div>
+    <div id="wLocList"></div>
+    <div class="row" style="margin-top:6px">
+      <select id="wAddKind"></select><button id="wAddLoc">📍 Ajouter</button>
+    </div>
+
+    <h2>Affichage</h2>
+    <label>Royaumes <input id="wo_regions" type="checkbox"></label>
+    <label>Rivières <input id="wo_rivers" type="checkbox"></label>
+    <label>Montagnes et forêts <input id="wo_symbols" type="checkbox"></label>
+    <label>Noms <input id="wo_labels" type="checkbox"></label>
+    <label>Style parchemin <input id="wo_parchment" type="checkbox"></label>
+    <button id="wFit" style="width:100%">Voir tout le monde</button>
+
+    <h2>Génération</h2>
+    <label>Forme <select id="wStyle"></select></label>
+    <label>Graine <input id="wSeed" type="number"></label>
+    <div class="row"><button id="wRegen" title="Même graine = même monde">↻ Regénérer</button><button id="wGen">🎲 Nouveau monde</button></div>
+
+    <h2>Légende</h2>
+    <div id="wLegend" class="legend"></div>
+
+    <h2>Campagne</h2>
+    <div class="row"><button id="wExport">💾 Exporter</button><button id="wImport">📂 Importer</button></div>
+    <input id="campIn" type="file" accept=".json" hidden>
+    <p class="muted">Un seul fichier : monde, lieux et leurs cartes de combat, fiches de personnages, carte en cours et caractéristiques.</p>
+  </aside>
+  <section id="worldMain" class="world-only">
+    <canvas id="wcv"></canvas>
+    <div id="worldTip" class="hidden"></div>
+    <div id="worldHint" class="hidden"></div>
+    <div id="worldHelp">Clic : sélectionner · Maj+clic : former un groupe · Clic droit : voyager · Glisser : déplacer · Molette : zoom</div>
+  </section>
+  <aside id="worldRight" class="world-only">
+    <div id="worldSel"></div>
+  </aside>
+
+  <!-- ===== Personnages : liste + fiche ===== -->
+  <aside id="sheetSide" class="chars-only">
+    <h2>Mes fiches</h2>
+    <div id="sheetList"></div>
+    <button id="btnNewSheet" class="primary" style="width:100%; margin-top:6px">➕ Nouveau personnage</button>
+    <div class="row" style="margin-top:6px"><button id="btnSheetsExport">💾 Exporter</button><button id="btnSheetsImport">📂 Importer</button></div>
+    <input id="sheetsIn" type="file" accept=".json" hidden>
+    <p class="muted">Les fiches sont gardées dans le navigateur. Exporte-les pour les sauvegarder ou les partager.
+      Pose-les sur la carte avec « Placer sur la carte » ou depuis l'onglet Jouer.</p>
+  </aside>
+  <section id="sheetMain" class="chars-only">
+    <div id="sheetEmpty" class="sheet-empty">Crée ton premier personnage avec « ➕ Nouveau personnage ».</div>
+    <div id="sheetForm" class="sheet"></div>
+  </section>
+
+  <!-- ===== Outils MJ ===== -->
+  <section id="gmMain" class="gm-only"></section>
+  <aside id="gmSide" class="gm-only"></aside>
+
   <!-- ===== Jouer : panneau droit ===== -->
   <aside id="playRight" class="play-only">
     <div class="turn-bar">
-      <span id="turnLabel"></span>
+      <div><span id="turnLabel"></span><div id="turnWho" class="muted"></div></div>
       <button id="btnStartCombat">⚔ Commencer le combat</button>
-      <button id="btnNextTurn">▶ Tour suivant</button>
+      <button id="btnNextTurn" title="Entrée ou N">⏭ Fin du tour</button>
     </div>
     <div class="row combat-ctl" id="combatCtl">
-      <button id="btnRestart" title="Figurines à leur position de départ, tour 1">↺ Recommencer</button>
-      <button id="btnNewCombat" title="Figurines à leur position de départ, retour en préparation">⏹ Nouveau combat</button>
+      <button id="btnRestart" title="Positions de départ, PV pleins, nouvelle initiative">↺ Recommencer</button>
+      <button id="btnNewCombat" title="Positions de départ, PV pleins, retour en préparation">⏹ Nouveau combat</button>
+      <button id="btnEndCombat" title="Partage l'XP des ennemis vaincus et enregistre les PV sur les fiches">🏁 Terminer</button>
     </div>
+    <label class="auto-roll"><span>🎲 Jets d'attaque et de dégâts automatiques</span><input id="autoRoll" type="checkbox"></label>
+    <label class="auto-roll"><span>🤖 Les monstres jouent seuls</span><input id="autoMonsters" type="checkbox"></label>
+    <button id="btnAi" class="wide-btn hidden" style="margin:-4px 0 10px">🤖 Jouer le tour de ce monstre</button>
+    <h2>Suivi du combat <span class="muted">(ordre d'initiative)</span></h2>
+    <div id="unitList"></div>
+    <button id="btnClearUnits" style="width:100%; margin:4px 0 6px">Retirer toutes les figurines</button>
+
     <div id="unitPanel" class="hidden">
       <h2>Figurine sélectionnée</h2>
       <div class="unit-head"><div id="unitHead"></div><input id="unitName" type="text"></div>
+      <label class="hide-tog">🙈 Cachée aux joueurs <input id="uHidden" type="checkbox"></label>
+      <div class="combat-box">
+        <div class="hp-line"><span id="uHpTxt"></span><button id="uSheet" class="mini" title="Ouvrir la fiche de personnage">📜 Fiche</button></div>
+        <div class="hpbar big"><i id="uHpBar"></i></div>
+        <div class="dmg-row">
+          <input id="uAmount" type="number" min="1" value="5" title="Montant">
+          <button id="btnDmg">💥 Dégâts</button><button id="btnHeal">💚 Soin</button><button id="btnFullHeal" title="PV au maximum">❤️</button>
+        </div>
+        <div class="cstats">
+          <label>PV <input id="uHp" type="number"></label><label>/ max <input id="uHpMax" type="number"></label>
+          <label>🛡 CA <input id="uCa" type="number"></label><label>⚡ Init. <input id="uInit" type="number"></label>
+          <label>🎯 Toucher <input id="uToucher" type="number"></label><label>⚔ Dégâts <input id="uDegats" type="text"></label>
+        </div>
+        <div class="muted" style="margin-top:6px">États</div>
+        <div class="conds" id="uConds"></div>
+        <div class="muted" id="uTrack"></div>
+      </div>
       <div class="stat">Hauteur : <b id="unitLvl"></b></div>
       <div class="stat"><span class="dot g"></span>Déplacement : <b id="unitMoveTxt"></b></div>
       <div class="stat"><span class="dot r"></span>Attaque : <b id="unitAtkTxt"></b></div>
@@ -122,16 +223,43 @@
         <label>Portée <input id="unitAtk" type="number" min="1" max="30"></label>
       </div>
       <button id="btnAttack" class="attack-btn">⚔ Attaquer <span class="muted">(A)</span></button>
+      <div id="uActions" class="act-list"></div>
       <button id="btnUnitBack" style="width:100%; margin:4px 0 2px">↺ Retour au départ du tour</button>
       <div id="unitRel"></div>
       <button id="btnUnitDel" style="width:100%; margin-top:6px">🗑 Retirer de la carte</button>
     </div>
 
-    <h2>Sur la carte</h2>
-    <div id="unitList"></div>
-    <button id="btnClearUnits" style="width:100%; margin-top:6px">Retirer toutes les figurines</button>
+
+    <h2>Outils du MJ</h2>
+    <button id="btnPlayers" class="primary wide-btn">📺 Ouvrir l'écran des joueurs</button>
+    <p class="muted">Seconde fenêtre à placer sur la télé ou un 2ᵉ écran : brouillard opaque, figurines cachées et PV des monstres invisibles. Synchronisée en direct.</p>
+    <label>👁 Voir comme les joueurs <input id="previewPlayers" type="checkbox"></label>
+    <label>🌫 Brouillard de guerre <input id="fogOn" type="checkbox"></label>
+    <div id="fogTools" class="fog-tools">
+      <div class="row"><button data-fog="reveal">🔦 Révéler</button><button data-fog="hide">🌫 Cacher</button></div>
+      <label>Pinceau <input id="fogBrush" type="range" min="1" max="7" value="3"></label>
+      <label>Révéler autour des personnages <input id="fogAuto" type="checkbox"></label>
+      <label>Vision (cases) <input id="fogRadius" type="number" min="1" max="30"></label>
+      <div class="row"><button id="fogHeroes" class="mini">👁 Vue des persos</button><button id="fogAll" class="mini">Tout révéler</button><button id="fogNone" class="mini">Tout cacher</button></div>
+    </div>
+    <div class="muted" style="margin-top:8px">📌 Marqueurs secrets (visibles par le MJ seulement)</div>
+    <div id="markPal" class="mark-pal"></div>
+    <div id="markList"></div>
+
+    <h2>Lancer de dés</h2>
+    <div class="dice-row"><input id="diceIn" type="text" placeholder="ex. 2d6+3" value="1d20"><button id="btnDice">🎲 Lancer</button></div>
+    <div class="dice-quick">
+      <button data-die="1d4">d4</button><button data-die="1d6">d6</button><button data-die="1d8">d8</button><button data-die="1d10">d10</button>
+      <button data-die="1d12">d12</button><button data-die="1d20">d20</button><button data-die="1d100">d100</button>
+      <button data-die="d20 avantage" title="2d20, on garde le meilleur">Av.</button><button data-die="d20 désavantage" title="2d20, on garde le pire">Désav.</button>
+    </div>
+    <div id="diceOut"></div>
+
+    <h2>Bilan</h2>
+    <div id="combatSummary"></div>
 
     <h2>Journal de combat</h2>
+    <div class="row" style="margin-bottom:5px"><button id="btnLogExport" class="mini">💾 Exporter (.txt)</button><button id="btnLogClear" class="mini">Vider</button></div>
     <div id="combatLog"></div>
 
     <h2>Vue</h2>
@@ -162,10 +290,19 @@
 <script src="js/stats.js"></script>
 <script src="js/ranges.js"></script>
 <script src="js/anims.js"></script>
+<script src="js/rules.js"></script>
 <script src="js/render.js"></script>
 <script src="js/editor.js"></script>
 <script src="js/presets.js"></script>
 <script src="js/play.js"></script>
+<script src="js/combat.js"></script>
+<script src="js/chars.js"></script>
+<script src="js/fog.js"></script>
+<script src="js/sfx.js"></script>
+<script src="js/actions.js"></script>
+<script src="js/gmtools.js"></script>
+<script src="js/worldgen.js"></script>
+<script src="js/world.js"></script>
 <script src="js/input.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/io.js"></script>

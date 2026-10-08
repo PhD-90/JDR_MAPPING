@@ -256,6 +256,11 @@ function sortedObjects() {
   return [...map.objects].sort((a, b) => (a.y + a.h) - (b.y + b.h) || a.x - b.x);
 }
 
+function fullyFogged(x0, y0, w, h) {
+  for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) if (inMap(x, y) && map.fog[y * map.cols + x]) return false;
+  return true;
+}
+
 // Dessine dans un repère décalé vers le haut (élément posé sur du relief)
 function lifted(c, lift, fn) {
   if (!lift) return fn();
@@ -290,12 +295,20 @@ function renderMap(c, ui) {
         c.fillText(L, x*T + T/2, top + T/2);
       }
     }
-    rowObjs[y].forEach(o => lifted(c, objLift(o), () => { drawShadow(c, o); drawObj(c, o); }));
-    rowUnits[y].sort((a, b) => a.x - b.x).forEach(u => drawUnit(c, u, ui));
+    // vue des joueurs : rien de ce qui est dans le brouillard ou caché n'est dessiné
+    const hideFog = ui && playerSight() && map.fogOn;
+    rowObjs[y].forEach(o => {
+      if (hideFog && fullyFogged(o.x, o.y, o.w, o.h)) return;
+      lifted(c, objLift(o), () => { drawShadow(c, o); drawObj(c, o); });
+    });
+    rowUnits[y].sort((a, b) => a.x - b.x).forEach(u => {
+      if (ui && playerSight() && (u.hidden || (map.fogOn && fullyFogged(u.x, u.y, u.size, u.size)))) return;
+      drawUnit(c, u, ui);
+    });
   }
 
   if (!ui) return;
-  if (mode === 'play') { drawAnimEffects(c); drawPlayOverlay(c); return; }
+  if (mode === 'play') { drawFog(c); drawMarks(c); drawAnimEffects(c); if (!PLAYER_VIEW) drawPlayOverlay(c); return; }
 
   // fantôme de placement
   if (hover && tool === 'object' && !drag) {

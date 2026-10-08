@@ -4,9 +4,10 @@
 cv.addEventListener('contextmenu', e => e.preventDefault());
 cv.addEventListener('mousedown', e => {
   const p = toWorld(e);
-  if (e.button === 1 || (e.button === 0 && spaceDown)) {
+  if (e.button === 1 || (e.button === 0 && (spaceDown || PLAYER_VIEW))) {
     drag = { mode:'pan', sx:e.clientX, sy:e.clientY, cx:cam.x, cy:cam.y }; e.preventDefault(); return;
   }
+  if (PLAYER_VIEW) return;
   if (mode === 'play') { playMouseDown(e, p); return; }
   // relief : clic gauche monte, clic droit descend ; glisser aplanit au même niveau
   if (tool === 'relief' && (e.button === 0 || e.button === 2)) {
@@ -91,7 +92,7 @@ cv.addEventListener('wheel', e => {
 
 // ---------- Clavier ----------
 window.addEventListener('keydown', e => {
-  if (e.target.tagName === 'INPUT') return;
+  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || ['chars', 'world', 'gm'].includes(mode) || PLAYER_VIEW) return;
   if (e.code === 'Space') { spaceDown = true; cv.style.cursor = 'grab'; e.preventDefault(); }
   if (e.ctrlKey && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); return; }
   if (mode === 'play') { playKey(e); return; }

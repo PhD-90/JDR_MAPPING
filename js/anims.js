@@ -18,17 +18,33 @@ const ATTACKS = {
 const DEFAULT_ATTACK = { kind:'melee', fx:'slash', color:'#ffffff', name:'Attaque', dur:750 };
 const attackOf = u => ATTACKS[u.sprite] || DEFAULT_ATTACK;
 
-let anims = [], animRaf = 0;
+let anims = [], pops = [], areaList = [], animRaf = 0;
 
-function startAttack(a, t) {
-  anims.push({ a, t, st: attackOf(a), start: performance.now(), dur: attackOf(a).dur, seed: (Math.random() * 1e5) | 0 });
+// Effet de zone : explosion, pluie de flèches, lumière sacrée, soins
+function startAreaFx(fx) {
+  areaList.push({ ...fx, seed: (Math.random() * 1e5) | 0, start: performance.now(), dur: fx.kind === 'heal' ? 1000 : 1400 });
+  if (!animRaf) animRaf = requestAnimationFrame(animTick);
+}
+
+// res = résultat du jet ({ hit, crit, dmg }) ou null si les jets ne sont pas automatiques
+function startAttack(a, t, res = null, st = null) {
+  st ||= attackOf(a);
+  anims.push({ a, t, res, st, start: performance.now(), dur: st.dur, seed: (Math.random() * 1e5) | 0 });
+  if (!animRaf) animRaf = requestAnimationFrame(animTick);
+}
+// Texte qui s'envole au-dessus d'une figurine (dégâts, soins, états...)
+function popText(u, text, color, size = 16) {
+  if (typeof broadcast === 'function' && !u.hidden) broadcast({ type: 'pop', u: u.id, text, color, size });
+  pops.push({ u, text, color, size, start: performance.now(), dur: 1300 });
   if (!animRaf) animRaf = requestAnimationFrame(animTick);
 }
 function animTick() {
   const now = performance.now();
   anims = anims.filter(an => now - an.start < an.dur && map.units.includes(an.a) && map.units.includes(an.t));
+  pops = pops.filter(p => now - p.start < p.dur && map.units.includes(p.u));
+  areaList = areaList.filter(f => now - f.start < f.dur);
   draw();
-  animRaf = anims.length ? requestAnimationFrame(animTick) : 0;
+  animRaf = (anims.length || pops.length || areaList.length) ? requestAnimationFrame(animTick) : 0;
 }
 
 // ---------- Outils ----------
@@ -67,7 +83,13 @@ function unitAnim(u) {
         r.dx -= g.ux * k * T * 0.12; r.dy -= g.uy * k * T * 0.12 + k * T * 0.06;
       }
     }
-    if (an.t === u) {
+    if (an.t === u && an.res && !an.res.hit) {   // raté : la cible esquive sur le côté
+      const h = hitTime(an) - 0.12;
+      if (p >= h) {
+        const q = (p - h) / (1 - h), s = Math.sin(Math.min(1, q * 1.6) * Math.PI) * T * 0.3;
+        r.dx += -g.uy * s; r.dy += g.ux * s * 0.5;
+      }
+    } else if (an.t === u) {
       const h = hitTime(an);
       if (p >= h) {
         const q = (p - h) / (1 - h), knock = Math.sin(Math.min(1, q * 2) * Math.PI) * T * 0.15;
@@ -293,6 +315,13 @@ const FX = {
   },
 };
 
+function floatTextSized(c, x, y, txt, color, alpha, size) {
+  c.save(); c.globalAlpha = Math.max(0, alpha);
+  c.font = `bold ${size}px system-ui`; c.textAlign = 'center'; c.textBaseline = 'bottom';
+  c.lineWidth = 4; c.strokeStyle = 'rgba(0,0,0,.85)'; c.strokeText(txt, x, y);
+  c.fillStyle = color; c.fillText(txt, x, y);
+  c.restore();
+}
 function floatText(c, x, y, txt, color, alpha) {
   c.save(); c.globalAlpha = Math.max(0, alpha);
   c.font = 'bold 14px system-ui'; c.textAlign = 'center'; c.textBaseline = 'bottom';
@@ -301,14 +330,72 @@ function floatText(c, x, y, txt, color, alpha) {
   c.restore();
 }
 
+// Invisible pour les joueurs : figurine cachée ou dans le brouillard
+const unseen = u => playerSight() && (u.hidden || (map.fogOn && fullyFogged(u.x, u.y, u.size, u.size)));
+
+function drawAreaFx(c, f, q) {
+  const { from, to, r, color } = f, h2 = (i, k = 0) => hash(f.seed + k * 131, i);
+  if (f.kind === 'blast') {
+    if (q < 0.3) {
+      const k = easeIn(q / 0.3);
+      for (let j = 6; j >= 0; j--) { const kk = Math.max(0, k - j * 0.04);
+        glowBall(c, from.x + (to.x - from.x) * kk, from.y + (to.y - from.y) * kk - Math.sin(kk * Math.PI) * 40, j ? 7 : 13, color, j ? 0.4 : 1); }
+      return;
+    }
+    const k = (q - 0.3) / 0.7;
+    glowBall(c, to.x, to.y, r * (0.5 + 0.9 * easeOut(Math.min(1, k * 2))), color, Math.max(0, 1 - k * 1.3));
+    ring(c, to.x, to.y, r * easeOut(Math.min(1, k * 1.5)), color, 7 * (1 - k) + 1, 1 - k, 0.6);
+    c.save(); c.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 40; i++) {
+      const a = h2(i) * Math.PI * 2, d = r * easeOut(k) * (0.3 + 0.8 * h2(i, 1));
+      c.globalAlpha = (1 - k) * 0.8; c.fillStyle = h2(i, 2) < 0.5 ? '#ffd24a' : color;
+      c.beginPath(); c.arc(to.x + Math.cos(a) * d, to.y + Math.sin(a) * d * 0.6 - k * 25 * h2(i, 3), 3 + 7 * (1 - k), 0, Math.PI * 2); c.fill();
+    }
+    c.restore();
+  } else if (f.kind === 'arrows') {
+    ring(c, to.x, to.y, r, 'rgba(255,233,168,.6)', 2, 1 - q, 0.6);
+    c.save(); c.lineCap = 'round';
+    for (let i = 0; i < 14; i++) {
+      const k = clamp((q - i * 0.025) / 0.35, 0, 1); if (k <= 0) continue;
+      const tx = to.x + (h2(i) - 0.5) * r * 1.6, ty = to.y + (h2(i, 1) - 0.5) * r;
+      if (k < 1) { c.strokeStyle = '#d8b880'; c.lineWidth = 2.5; c.beginPath(); c.moveTo(tx - 8, ty - 110 * (1 - k) - 18); c.lineTo(tx, ty - 110 * (1 - k)); c.stroke(); }
+      else { c.globalAlpha = Math.max(0, 1 - (q - 0.5) * 2); c.strokeStyle = '#b08850'; c.lineWidth = 2; c.beginPath(); c.moveTo(tx - 5, ty - 12); c.lineTo(tx, ty); c.stroke(); c.globalAlpha = 1; }
+    }
+    c.restore();
+  } else if (f.kind === 'holy') {
+    glowBall(c, to.x, to.y, r * 0.9, color, 0.6 * (1 - q));
+    ring(c, to.x, to.y, r * easeOut(q), color, 4 * (1 - q) + 1, 1 - q, 0.6);
+    c.save(); c.globalAlpha = 1 - q; c.fillStyle = '#fff3b0';
+    for (let i = 0; i < 18; i++) { const a = h2(i) * Math.PI * 2, d = r * h2(i, 1);
+      c.fillRect(to.x + Math.cos(a) * d - 1.5, to.y + Math.sin(a) * d * 0.6 - q * 50 * (0.5 + h2(i, 2)) - 1.5, 3, 3); }
+    c.restore();
+  } else if (f.kind === 'heal') {
+    c.save(); c.globalAlpha = 1 - q; c.fillStyle = color; c.font = 'bold 14px system-ui'; c.textAlign = 'center';
+    for (let i = 0; i < 12; i++) c.fillText('+', to.x + (h2(i) - 0.5) * T * 1.1, to.y - q * 50 * (0.6 + h2(i, 1)) + (h2(i, 2) - 0.5) * 20);
+    c.restore();
+    glowBall(c, to.x, to.y - 10, T * 0.6, color, 0.5 * (1 - q));
+  }
+}
+
 function drawAnimEffects(c) {
+  const now = performance.now();
+  for (const f of areaList) drawAreaFx(c, f, (now - f.start) / f.dur);
+  for (const p of pops) {
+    if (unseen(p.u)) continue;
+    const q = (now - p.start) / p.dur, b = unitBox(p.u);
+    const stack = pops.filter(o => o.u === p.u && o.start < p.start && now - o.start < 400).length;   // évite les superpositions
+    c.save(); c.font = `bold ${p.size}px system-ui`;
+    floatTextSized(c, b.cx, b.fy - b.sw - 4 - easeOut(q) * 34 - stack * 18, p.text, p.color, 1 - q * q, p.size);
+    c.restore();
+  }
   for (const an of anims) {
+    if (unseen(an.a) || unseen(an.t)) continue;
     const p = prog(an), g = animGeom(an);
     (FX[an.st.fx] || FX.slash)(c, an, p, g);
     const h = hitTime(an);
     if (p >= h) {
       const q = (p - h) / (1 - h);
-      floatText(c, g.tx, g.B.fy - g.B.sw - 22 - q * 18, an.st.name + ' !', an.st.color, 1 - q * q);
+      floatText(c, g.tx, g.B.fy - g.B.sw - 48 - q * 14, an.st.name + ' !', an.st.color, 1 - q * q);
     }
   }
 }

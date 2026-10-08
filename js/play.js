@@ -1,33 +1,56 @@
 // Mode « Jouer » : le MJ place et déplace les personnages et monstres sur la carte.
-// La hauteur de chaque unité (relief + élément sur lequel elle se tient) est affichée.
+// La hauteur de chaque figurine (relief + élément sur lequel elle se tient) est affichée,
+// ainsi que ses PV, ses états et le tour en cours (voir combat.js).
 
-let playSel = null;   // unité sélectionnée
-let pending = null;   // sprite en attente de placement
+let playSel = null;       // figurine sélectionnée
+let pending = null;       // figurine en attente de placement : clé de sprite ou « sheet:<id> » (fiche de personnage)
 let attackMode = false;   // en attente du choix d'une cible
-let combatLog = [];       // dernières attaques (affichées dans le panneau)
 
 function setMode(m) {
   mode = m;
-  document.body.classList.toggle('mode-play', m === 'play');
-  document.body.classList.toggle('mode-edit', m === 'edit');
+  ['play', 'edit', 'chars', 'world', 'gm'].forEach(k => document.body.classList.toggle('mode-' + k, m === k));
   document.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
-  drag = null; select(null); playSel = null; setPending(null); attackMode = false; $('attackHint').classList.add('hidden');
+  drag = null; select(null); playSel = null; setPending(null); attackMode = false; actionMode = null; $('attackHint').classList.add('hidden');
+  updateMapLocTag();
+  if (m === 'chars') { renderChars(); return; }
+  if (m === 'world') { enterWorld(); return; }
+  if (m === 'gm') { enterGm(); return; }
   syncMapUI(); syncPlayUI(); resize();
 }
 document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => setMode(b.dataset.mode));
 
-// ---------- Unités ----------
+// ---------- Figurines ----------
+const pendingSprite = k => k && k.startsWith('sheet:') ? (getSheet(k.slice(6)) || {}).sprite || 'warrior' : k;
+
 function addUnit(key, cx, cy) {
-  const sp = SPRITES[key], s = sp.size;
-  const n = map.units.filter(u => u.sprite === key).length;
-  const u = { id: map.nextId++, sprite: key, name: sp.name + (n ? ' ' + (n + 1) : ''), size: s,
+  const sheet = key.startsWith('sheet:') ? getSheet(key.slice(6)) : null;
+  const spKey = sheet ? sheet.sprite : key, sp = SPRITES[spKey], s = sp.size;
+  const baseName = sheet ? sheet.name : sp.name;
+  const n = map.units.filter(u => (u.baseName || SPRITES[u.sprite].name) === baseName).length;
+  const u = { id: map.nextId++, sprite: spKey, baseName, name: baseName + (n ? ' ' + (n + 1) : ''), size: s,
               x: clamp(cx, 0, map.cols - s), y: clamp(cy, 0, map.rows - s) };
   u.sx = u.x; u.sy = u.y;   // position en début de tour : origine de la zone de déplacement
   u.ox = u.x; u.oy = u.y;   // position au début du combat (pour « Recommencer »)
+  if (sheet) applySheet(u, sheet);
+  ensureCombat(u);
   map.units.push(u);
+  if (map.turn > 0) joinCombat(u);
   return u;
 }
+// Copie les valeurs d'une fiche de personnage dans une figurine
+function applySheet(u, sheet) {
+  const v = sheetDerived(sheet).val;
+  const dd = sheetDerived(sheet);
+  Object.assign(u, { cls: sheet.cls, lvl: sheet.level, mod: dd.mod[dd.cls.prio[0]] });
+  Object.assign(u, { sheetId: sheet.id, camp: sheet.camp, sprite: sheet.sprite,
+    hpMax: Math.max(1, +v.pv), ca: +v.ca, toucher: +v.toucher, degats: String(v.degats), init: +v.init,
+    mov: +v.deplacement, atk: +v.portee, saut: +v.saut, nage: !!v.nage, vol: !!v.vol });
+  u.xp = sheet.camp === 'monster' ? (sheet.xp || 50 * sheet.level) : 0;
+  if (u.hp === undefined) u.hp = clamp(sheet.hpCur ?? u.hpMax, 0, u.hpMax);
+  if (u.hp > u.hpMax) u.hp = u.hpMax;
+}
 function removeUnit(u) {
+  if (map.turn > 0) leaveCombat(u);
   map.units = map.units.filter(x => x !== u);
   if (playSel === u) playSel = null;
   syncPlayUI();
@@ -39,11 +62,12 @@ function selectUnit(u) {
 }
 function setPending(k) {
   pending = k;
+  if (k) { fogTool = null; markTool = null; if (typeof syncGmTools === 'function') syncGmTools(); }
   document.querySelectorAll('[data-sprite]').forEach(b => b.classList.toggle('on', b.dataset.sprite === k));
   redraw();
 }
 
-// Position à l'écran : pieds de l'unité (relief compris) et taille du sprite
+// Position à l'écran : pieds de la figurine (relief compris) et taille du sprite
 function unitBox(u) {
   const sw = T * 0.95 * u.size;
   return { cx: (u.x + u.size/2) * T, fy: (u.y + u.size*0.78) * T - unitLevel(u) * LH(), sw };
@@ -51,8 +75,8 @@ function unitBox(u) {
 function hitUnit(wx, wy) {
   const front = [...map.units].sort((a, b) => (b.y + b.size) - (a.y + a.size));
   return front.find(u => {
-    const { cx, fy, sw } = unitBox(u);
-    return wx >= cx - sw*0.45 && wx <= cx + sw*0.45 && wy >= fy - sw && wy <= fy + sw*0.2;
+    const { cx, fy, sw } = unitBox(u), ko = isKO(u);
+    return wx >= cx - sw*0.45 && wx <= cx + sw*0.45 && wy >= fy - (ko ? sw*0.5 : sw) && wy <= fy + sw*0.2;
   }) || null;
 }
 
@@ -66,44 +90,76 @@ function tag(c, x, y, txt, bg) {
 function drawUnit(c, u, ui, ghost = false) {
   const sp = SPRITES[u.sprite]; if (!sp) return;
   let { cx, fy, sw } = unitBox(u);
-  const lvl = unitLevel(u), an = ghost ? null : unitAnim(u);
+  const lvl = unitLevel(u), an = ghost ? null : unitAnim(u), kind = unitKind(u), ko = !ghost && isKO(u);
+  const play = ui && mode === 'play', active = play && !ghost && u === activeUnit();
   if (an) { cx += an.dx; fy += an.dy; }
   c.save();
-  if (ghost) c.globalAlpha = 0.55;
+  if (ghost || (u.hidden && !playerSight())) c.globalAlpha = 0.5;   // le MJ voit les figurines cachées en transparence
   // ombre et socle coloré (bleu = personnage, rouge = monstre)
   c.fillStyle = 'rgba(0,0,0,.35)';
   c.beginPath(); c.ellipse(cx, fy, sw*0.36, sw*0.13, 0, 0, Math.PI*2); c.fill();
-  c.strokeStyle = sp.kind === 'hero' ? '#4da3ff' : '#ff4d4d'; c.lineWidth = 2.5;
+  c.strokeStyle = ko ? '#666' : kind === 'hero' ? '#4da3ff' : '#ff4d4d'; c.lineWidth = 2.5;
   c.beginPath(); c.ellipse(cx, fy, sw*0.42, sw*0.16, 0, 0, Math.PI*2); c.stroke();
+  if (active) {   // c'est son tour : anneau doré qui pulse
+    const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 250);
+    c.strokeStyle = `rgba(255,210,60,${0.6 + 0.4 * pulse})`; c.lineWidth = 4;
+    c.beginPath(); c.ellipse(cx, fy, sw*0.56, sw*0.23, 0, 0, Math.PI*2); c.stroke();
+  }
   if (ui && u === playSel) {
     c.strokeStyle = '#e0a52b'; c.lineWidth = 3; c.setLineDash([5, 3]);
-    c.beginPath(); c.ellipse(cx, fy, sw*0.52, sw*0.21, 0, 0, Math.PI*2); c.stroke();
+    c.beginPath(); c.ellipse(cx, fy, sw*0.5, sw*0.2, 0, 0, Math.PI*2); c.stroke();
     c.setLineDash([]);
   }
   // ennemi à portée d'attaque de la figurine dont on affiche les zones
-  const threat = !ghost && ui && curZones.some(t => t.strong && t.u !== u &&
-                 SPRITES[t.u.sprite].kind !== sp.kind && unitInZone(u, t.z));
+  const threat = !ghost && !ko && ui && curZones.some(t => t.strong && t.u !== u &&
+                 unitKind(t.u) !== kind && unitInZone(u, t.z));
   if (threat) {
     c.strokeStyle = '#ff3b3b'; c.lineWidth = 4;
     c.beginPath(); c.ellipse(cx, fy, sw*0.5, sw*0.2, 0, 0, Math.PI*2); c.stroke();
   }
   c.imageSmoothingEnabled = false;
-  const paint = img => {
-    if (an && an.flip) { c.save(); c.translate(cx, 0); c.scale(-1, 1); c.drawImage(img, -sw/2, fy - sw*0.97, sw, sw); c.restore(); }
-    else c.drawImage(img, cx - sw/2, fy - sw*0.97, sw, sw);
-  };
-  paint(spriteCanvas(u.sprite));
-  if (an && an.flash > 0) {   // éclair blanc quand la figurine est touchée
-    c.save(); c.globalAlpha = an.flash; paint(spriteTint(u.sprite, '#ffffff')); c.restore();
+  if (ko) {   // hors de combat : couché et grisé
+    c.save(); c.translate(cx, fy - sw*0.18); c.rotate(-Math.PI / 2);
+    c.globalAlpha *= 0.75; c.drawImage(spriteCanvas(u.sprite), -sw*0.4, -sw*0.5, sw*0.8, sw*0.8);
+    c.globalAlpha = 0.45; c.drawImage(spriteTint(u.sprite, '#2a2a2a'), -sw*0.4, -sw*0.5, sw*0.8, sw*0.8);
+    c.restore();
+  } else {
+    const paint = img => {
+      if (an && an.flip) { c.save(); c.translate(cx, 0); c.scale(-1, 1); c.drawImage(img, -sw/2, fy - sw*0.97, sw, sw); c.restore(); }
+      else c.drawImage(img, cx - sw/2, fy - sw*0.97, sw, sw);
+    };
+    paint(spriteCanvas(u.sprite));
+    if (an && an.flash > 0) {   // éclair blanc quand la figurine est touchée
+      c.save(); c.globalAlpha = an.flash; paint(spriteTint(u.sprite, '#ffffff')); c.restore();
+    }
   }
   if (!ghost) {
-    const name = (threat ? '⚔ ' : '') + u.name + (lvl > 0 ? `  ▲${fmtLevel(lvl)}` : '');
-    tag(c, cx, fy - sw - 2, name, threat ? '#c0392b' : sp.kind === 'hero' ? 'rgba(29,58,102,.9)' : 'rgba(90,26,26,.9)');
-    // hauteur par rapport à l'unité sélectionnée
-    if (ui && mode === 'play' && playSel && playSel !== u) {
+    // pile au-dessus de la tête : barre de PV, nom, états, hauteur relative
+    let y = ko ? fy - sw*0.45 : fy - sw - 2;
+    if (u.hpMax && !(playerSight() && kind === 'monster')) {   // PV des monstres invisibles pour les joueurs
+      const f = clamp(u.hp / u.hpMax, 0, 1), bw = Math.max(sw * 0.8, 30);
+      c.fillStyle = 'rgba(0,0,0,.7)'; c.fillRect(cx - bw/2 - 1, y - 6, bw + 2, 6);
+      c.fillStyle = hpColor(f); c.fillRect(cx - bw/2, y - 5, bw * f, 4);
+      y -= 8;
+    }
+    const name = (u.hidden && !playerSight() ? '🙈 ' : '') + (u.dead ? '⚰ ' : ko ? '💀 ' : threat ? '⚔ ' : '') + u.name + (lvl > 0 && !ko ? `  ▲${fmtLevel(lvl)}` : '');
+    tag(c, cx, y, name, ko ? 'rgba(40,40,40,.9)' : threat ? '#c0392b' : kind === 'hero' ? 'rgba(29,58,102,.9)' : 'rgba(90,26,26,.9)');
+    y -= 15;
+    if (u.conds && u.conds.length) {
+      c.font = '12px system-ui'; c.textAlign = 'center'; c.textBaseline = 'bottom';
+      c.fillText(u.conds.map(k => condOf(k)?.icon || '').join(''), cx, y);
+      y -= 15;
+    }
+    if (play && playSel && playSel !== u && !playerSight()) {   // hauteur par rapport à la figurine sélectionnée
       const d = lvl - unitLevel(playSel);
       if (Math.abs(d) >= 0.25)
-        tag(c, cx, fy - sw - 18, (d > 0 ? '▲ +' : '▼ −') + fmtLevel(Math.abs(d)), d > 0 ? '#b5651d' : '#2a6f7f');
+        tag(c, cx, y, (d > 0 ? '▲ +' : '▼ −') + fmtLevel(Math.abs(d)), d > 0 ? '#b5651d' : '#2a6f7f');
+    }
+    if (active) {   // flèche du tour en cours
+      const bob = Math.sin(performance.now() / 200) * 3;
+      c.fillStyle = '#ffd23c'; c.strokeStyle = '#000'; c.lineWidth = 1.5;
+      c.beginPath(); c.moveTo(cx - 8, y - 22 + bob); c.lineTo(cx + 8, y - 22 + bob); c.lineTo(cx, y - 10 + bob); c.closePath();
+      c.fill(); c.stroke();
     }
   }
   c.restore();
@@ -119,7 +175,7 @@ function drawPlayOverlay(c) {
     c.drawImage(spriteCanvas(u.sprite), z.sx*T + u.size*T*0.2, top + u.size*T*0.1, u.size*T*0.6, u.size*T*0.6);
     c.globalAlpha = 1;
   });
-  // mode attaque : viseur sur la cible survolée
+  // mode attaque : viseur sur la cible survolée, avec la chance de toucher
   if (attackMode && playSel && hover) {
     const t = hitUnit(hover.wx, hover.wy);
     if (t && t !== playSel) {
@@ -133,18 +189,26 @@ function drawPlayOverlay(c) {
       c.beginPath();
       [[1,0],[-1,0],[0,1],[0,-1]].forEach(([dx, dy]) => { c.moveTo(b.cx + dx*r*0.6, ty + dy*r*0.6); c.lineTo(b.cx + dx*r*1.3, ty + dy*r*1.3); });
       c.stroke();
-      if (!inRange) tag(c, b.cx, ty + r + 18, 'hors de portée', '#8a2a2a');
+      const need = clamp((t.ca ?? 10) - (playSel.toucher || 0), 2, 20), pct = Math.round((21 - need) / 20 * 100);
+      tag(c, b.cx, ty + r + 18, (inRange ? '' : 'hors de portée · ') + `CA ${t.ca} · ${pct}% de toucher`, inRange ? '#5a4a10' : '#8a2a2a');
       c.restore();
     }
   }
+  drawActionTarget(c);
   if (!pending || !hover || drag) return;
-  const s = SPRITES[pending].size;
-  drawUnit(c, { sprite: pending, name: '', size: s,
-                x: clamp(hover.cx, 0, map.cols - s), y: clamp(hover.cy, 0, map.rows - s) }, true, true);
+  const spk = pendingSprite(pending), s = SPRITES[spk].size;
+  drawUnit(c, { sprite: spk, name: '', size: s, x: clamp(hover.cx, 0, map.cols - s), y: clamp(hover.cy, 0, map.rows - s) }, true, true);
 }
+// La flèche et l'anneau du tour en cours sont animés : on redessine en continu en mode Jouer
+(function pulse() {
+  if (mode === 'play' && map.turn > 0 && !animRaf) draw();
+  setTimeout(() => requestAnimationFrame(pulse), 60);
+})();
 
 // ---------- Souris / clavier ----------
 function playMouseDown(e, p) {
+  if (actionMode) { actionClick(e, p); return; }
+  if (gmMouseDown(e, p)) return;
   if (e.button === 2) {
     const u = hitUnit(p.wx, p.wy);
     if (u) { pushUndo(); removeUnit(u); changed(); }
@@ -171,6 +235,7 @@ function playMouseDown(e, p) {
   selectUnit(null);
 }
 function playMouseMove(p) {
+  if (gmMouseMove(p)) return;
   if (drag.mode !== 'unit' || !playSel) return;
   const u = playSel;
   u.x = clamp(p.cx - drag.ox, 0, map.cols - u.size);
@@ -181,8 +246,9 @@ function playMouseMove(p) {
 function followSetup(u) { if (!map.turn) { u.sx = u.ox = u.x; u.sy = u.oy = u.y; } }
 function playKey(e) {
   if ((e.key === 'Delete' || e.key === 'Backspace') && playSel) { pushUndo(); removeUnit(playSel); changed(); }
-  else if (e.key === 'Escape') { if (attackMode) setAttackMode(false); else { setPending(null); selectUnit(null); } }
+  else if (e.key === 'Escape') { if (actionMode) cancelAction(); else if (attackMode) setAttackMode(false); else if (fogTool || markTool) { setFogTool(null); setMarkTool(null); } else { setPending(null); selectUnit(null); } }
   else if (e.key.toLowerCase() === 'a' && playSel) setAttackMode(!attackMode);
+  else if ((e.key === 'Enter' || e.key.toLowerCase() === 'n') && map.turn > 0 && e.target.tagName !== 'BUTTON') { e.preventDefault(); endTurn(); }
   else if (playSel && e.key.startsWith('Arrow')) {
     e.preventDefault(); pushUndo();
     const d = { ArrowLeft:[-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1] }[e.key];
@@ -201,6 +267,19 @@ function buildPlayPalettes() {
     $(sp.kind === 'hero' ? 'heroPal' : 'monsterPal').appendChild(b);
   });
 }
+// Fiches de l'onglet « Personnages », à poser sur la carte
+function renderSheetPal() {
+  const pal = $('sheetPal'); pal.replaceChildren();
+  $('sheetPalBox').classList.toggle('hidden', !sheets.length);
+  sheets.forEach(s => {
+    const b = document.createElement('button'); b.className = 'item'; b.dataset.sprite = 'sheet:' + s.id;
+    const name = document.createElement('span'); name.className = 'ellip'; name.textContent = s.name;
+    b.append(spriteIcon(s.sprite, 44), name);
+    b.title = `${s.name} : ${(RACES[s.race] || {}).name} ${(CLASSES[s.cls] || {}).name} niv. ${s.level}`;
+    b.onclick = () => setPending(pending === b.dataset.sprite ? null : b.dataset.sprite);
+    pal.appendChild(b);
+  });
+}
 
 function syncPlayUI() {
   const u = playSel;
@@ -208,118 +287,82 @@ function syncPlayUI() {
   if (u) {
     $('unitHead').replaceChildren(spriteIcon(u.sprite, 56));
     if (document.activeElement !== $('unitName')) $('unitName').value = u.name;
+    syncCombatPanel(u);
     const lvl = unitLevel(u);
     $('unitLvl').textContent = lvl > 0
       ? `${fmtLevel(lvl)} niveau${lvl > 1 ? 'x' : ''} (≈ ${fmtLevel(lvl * METERS_PER_LEVEL)} m)` : 'Au sol';
     // portées
     const st = unitStats(u), used = movementUsed(u), z = computeZones(u);
-    $('unitMoveTxt').textContent = isFinite(used) ? `${used} / ${st.deplacement} cases utilisées`
-                                                 : `⚠ hors de portée (${st.deplacement} cases)`;
-    $('unitMoveTxt').classList.toggle('warn', !isFinite(used));
+    const blocked = (u.conds || []).map(condOf).find(c => c && c.move0);
+    $('unitMoveTxt').textContent = isKO(u) ? 'hors de combat' : blocked ? `bloqué (${blocked.name})`
+      : isFinite(used) ? `${used} / ${st.deplacement} cases utilisées` : `⚠ hors de portée (${st.deplacement} cases)`;
+    $('unitMoveTxt').classList.toggle('warn', !isFinite(used) || !!blocked || isKO(u));
     const bonus = STATS.rules.bonus_portee_hauteur;
-    $('unitAtkTxt').textContent = st.attaque <= 1 ? 'corps à corps (1 case)'
-      : `${st.attaque} cases` + (bonus ? ` (+${fmtLevel(bonus)} par niveau au-dessus)` : '');
+    $('unitAtkTxt').textContent = (st.attaque <= 1 ? 'corps à corps (1 case)'
+      : `${st.attaque} cases` + (bonus ? ` (+${fmtLevel(bonus)} par niveau au-dessus)` : '')) + ` · ${attackOf(u).name}`;
     $('unitAbil').textContent = [st.vol && 'Vol', st.nage && 'Nage', `Escalade ${fmtLevel(st.saut)} niv.`].filter(Boolean).join(' · ');
-    if (document.activeElement !== $('unitMov')) $('unitMov').value = st.deplacement;
+    if (document.activeElement !== $('unitMov')) $('unitMov').value = u.mov ?? st.deplacement;
     if (document.activeElement !== $('unitAtk')) $('unitAtk').value = st.attaque;
+    $('btnAttack').disabled = isKO(u);
+    // capacités et sorts
+    const acts = $('uActions'); acts.replaceChildren();
+    unitActions(u).forEach(k => {
+      const A = ACTIONS[k], left = usesLeft(u, k);
+      const b = document.createElement('button'); b.className = 'act-btn' + (actionMode && actionMode.k === k && actionMode.u === u ? ' on' : '');
+      b.textContent = `${A.icon} ${A.name} (${left}/${A.uses})`; b.title = A.desc + ' — utilisations par combat';
+      b.disabled = isKO(u) || left <= 0;
+      b.onclick = () => actionMode && actionMode.k === k ? cancelAction() : useAction(u, k);
+      acts.appendChild(b);
+    });
     // comparaison avec le camp adverse
-    const kind = SPRITES[u.sprite].kind;
-    const foes = map.units.filter(o => SPRITES[o.sprite].kind !== kind);
+    const foes = map.units.filter(o => unitKind(o) !== unitKind(u));
     const rel = $('unitRel'); rel.replaceChildren();
     if (!foes.length) rel.innerHTML = '<p class="muted">Aucun adversaire sur la carte.</p>';
     foes.forEach(o => {
       const d = lvl - unitLevel(o), div = document.createElement('div');
-      div.className = 'rel ' + (d >= 0.5 ? 'up' : d <= -0.5 ? 'down' : 'eq');
-      div.textContent = (d >= 0.5 ? `▲ Domine ${o.name} (+${fmtLevel(d)})`
+      div.className = 'rel ' + (isKO(o) ? 'eq' : d >= 0.5 ? 'up' : d <= -0.5 ? 'down' : 'eq');
+      div.textContent = isKO(o) ? `💀 ${o.name} (hors de combat)`
+                      : (d >= 0.5 ? `▲ Domine ${o.name} (+${fmtLevel(d)})`
                       : d <= -0.5 ? `▼ Plus bas que ${o.name} (−${fmtLevel(-d)})`
                       : `= Même niveau que ${o.name}`) + (unitInZone(o, z) ? '  ⚔ à portée' : '');
       rel.appendChild(div);
     });
   }
-  const fighting = map.turn > 0;
-  $('turnLabel').innerHTML = fighting ? `Tour <b>${map.turn}</b>` : '<b>Préparation</b>';
-  $('btnStartCombat').classList.toggle('hidden', fighting);
-  $('btnNextTurn').classList.toggle('hidden', !fighting);
-  $('combatCtl').classList.toggle('hidden', !fighting);
   $('btnAttack').classList.toggle('on', attackMode);
-  $('combatLog').replaceChildren(...combatLog.map(t => Object.assign(document.createElement('div'), { textContent: t })));
-  if (!combatLog.length) $('combatLog').innerHTML = '<p class="muted">Aucune attaque pour l\'instant.</p>';
   $('statsSrc').textContent = statsSource;
+  syncGmTools(); updatePlayerBanner();
   document.querySelectorAll('[data-zone]').forEach(b => b.classList.toggle('on', b.dataset.zone === zoneMode));
-  // liste des unités : personnages puis monstres
-  const list = $('unitList'); list.replaceChildren();
-  const units = [...map.units].sort((a, b) => (SPRITES[a.sprite].kind === 'hero' ? 0 : 1) - (SPRITES[b.sprite].kind === 'hero' ? 0 : 1));
-  if (!units.length) list.innerHTML = '<p class="muted">Aucune unité. Choisis un personnage ou un monstre à gauche.</p>';
-  units.forEach(un => {
-    const b = document.createElement('button'); b.className = 'unit-row' + (un === playSel ? ' on' : '');
-    const name = document.createElement('span'); name.textContent = un.name;
-    const lvl = document.createElement('span'); lvl.className = 'lvl'; lvl.textContent = '▲ ' + fmtLevel(unitLevel(un));
-    b.append(spriteIcon(un.sprite, 24), name, lvl);
-    b.onclick = () => selectUnit(un);
-    list.appendChild(b);
-  });
+  syncCombatUI();
 }
 
 $('unitName').addEventListener('focus', pushUndo);
 $('unitName').addEventListener('input', e => { if (playSel) { playSel.name = e.target.value; changed(); syncPlayUI(); } });
 $('btnUnitDel').onclick = () => { if (playSel) { pushUndo(); removeUnit(playSel); changed(); } };
 $('btnClearUnits').onclick = () => {
-  if (!map.units.length || !confirm('Retirer toutes les unités de la carte ?')) return;
-  pushUndo(); map.units = []; playSel = null; syncPlayUI(); changed();
+  if (!map.units.length || !confirm('Retirer toutes les figurines de la carte ?')) return;
+  pushUndo(); map.units = []; map.order = []; map.active = 0; map.turn = 0; playSel = null; syncPlayUI(); changed();
 };
+$('uSheet').onclick = () => { const u = playSel; if (u && u.sheetId) { setMode('chars'); openSheet(u.sheetId); } };
+
 // ---------- Attaques ----------
 function setAttackMode(on) {
-  attackMode = on && !!playSel;
+  attackMode = on && !!playSel && !isKO(playSel);
   $('attackHint').classList.toggle('hidden', !attackMode);
   if (attackMode) $('attackHint').textContent = `⚔ ${playSel.name} : clique sur la cible à attaquer (Échap pour annuler)`;
   syncPlayUI(); redraw();
 }
-function attack(a, t) {
-  startAttack(a, t);
-  const inRange = unitInZone(t, computeZones(a));
-  combatLog.unshift(`${map.turn ? 'Tour ' + map.turn : 'Préparation'} · ${a.name} → ${t.name} : ${attackOf(a).name}${inRange ? '' : ' (hors de portée)'}`);
-  combatLog = combatLog.slice(0, 8);
-  syncPlayUI();
-}
 $('btnAttack').onclick = () => setAttackMode(!attackMode);
-
-// ---------- Tours ----------
-function nextTurn() {
-  pushUndo();
-  map.turn = (map.turn || 0) + 1;
-  map.units.forEach(u => { u.sx = u.x; u.sy = u.y; });
-  changed(); syncPlayUI();
-}
-// Début du combat : les positions actuelles deviennent les positions de départ
-function startCombat() {
-  pushUndo();
-  map.turn = 1; combatLog = []; anims = [];
-  map.units.forEach(u => { u.ox = u.sx = u.x; u.oy = u.sy = u.y; });
-  changed(); syncPlayUI();
-}
-// Remet les figurines à leur position de départ ; turn = 1 (recommencer) ou 0 (retour en préparation)
-function resetCombat(turn) {
-  pushUndo();
-  map.turn = turn; combatLog = []; anims = [];
-  map.units.forEach(u => { u.x = u.sx = u.ox ?? u.x; u.y = u.sy = u.oy ?? u.y; });
-  changed(); syncPlayUI();
-}
-$('btnNextTurn').onclick = nextTurn;
-$('btnStartCombat').onclick = startCombat;
-$('btnRestart').onclick = () => { if (confirm('Recommencer le combat ? Les figurines retournent à leur position de départ (tour 1).')) resetCombat(1); };
-$('btnNewCombat').onclick = () => { if (confirm('Nouveau combat ? Les figurines retournent à leur position de départ et on repasse en préparation.')) resetCombat(0); };
 $('btnUnitBack').onclick = () => {
   const u = playSel; if (!u) return;
   pushUndo(); u.x = u.sx ?? u.x; u.y = u.sy ?? u.y; changed(); syncPlayUI();
 };
 
-// Déplacement / portée propres à cette figurine (sinon valeurs du fichier de caractéristiques)
-[['unitMov', 'mov', 'deplacement'], ['unitAtk', 'atk', 'attaque']].forEach(([id, prop, statKey]) => {
+// Déplacement / portée propres à cette figurine
+[['unitMov', 'mov'], ['unitAtk', 'atk']].forEach(([id, prop]) => {
   $(id).addEventListener('focus', pushUndo);
   $(id).addEventListener('input', e => {
     const u = playSel; if (!u || e.target.value === '') return;
-    const v = Math.max(0, +e.target.value), base = (STATS.units[u.sprite] || {})[statKey];
-    if (v === base) delete u[prop]; else u[prop] = v;
+    u[prop] = Math.max(0, +e.target.value);
     changed(); syncPlayUI();
   });
 });

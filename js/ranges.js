@@ -21,7 +21,35 @@ function terrainGrids() {
       if (!NOT_STANDABLE.includes(shape)) surf[k] = Math.max(surf[k], top);
     }
   }
-  return gridCache = { surf, objCost };
+  const block = Uint8Array.from(objCost, c => isFinite(c) ? 0 : 1);   // cases qui bloquent la vue
+  return gridCache = { surf, objCost, block };
+}
+
+// Peut-on attaquer la case (tx, ty) depuis (x, y), à la hauteur L ? Portée (bonus en hauteur), hauteur au corps à corps,
+// ligne de vue pour les attaques à distance (murs, maisons, arbres, colonnes la bloquent)
+function hitContext(u) {
+  const R = STATS.rules, { surf, block } = terrainGrids();
+  return { R, s: u.size, atk: unitStats(u).attaque, surf, block: R.ligne_de_vue !== false ? block : null };
+}
+function canHitCell(g, x, y, L, tx, ty) {
+  const { R, s, atk, surf, block } = g, ranged = atk > 1;
+  const ddx = Math.max(0, x - tx, tx - (x + s - 1)), ddy = Math.max(0, y - ty, ty - (y + s - 1));
+  const d = R.attaque_diagonale ? Math.max(ddx, ddy) : ddx + ddy;
+  if (d === 0) return false;
+  const dl = L - surf[ty * map.cols + tx];
+  let range = atk;
+  if (ranged) range += Math.max(0, Math.floor(dl * (R.bonus_portee_hauteur || 0) + 1e-6));
+  else if (Math.abs(dl) > R.melee_hauteur_max + 1e-6) return false;
+  if (d > range) return false;
+  if (ranged && block && !lineOfSight(x + (s >> 1), y + (s >> 1), tx, ty, block)) return false;
+  return true;
+}
+// La cible est-elle attaquable depuis la position actuelle ?
+function canHitNow(a, t) {
+  const g = hitContext(a), L = unitLevel(a);
+  for (let y = t.y; y < t.y + t.size; y++) for (let x = t.x; x < t.x + t.size; x++)
+    if (inMap(x, y) && canHitCell(g, a.x, a.y, L, x, y)) return true;
+  return false;
 }
 
 const DIRS4 = [[1,0],[-1,0],[0,1],[0,-1]];
@@ -33,10 +61,10 @@ function computeZones(u) {
   const { surf, objCost } = terrainGrids();
 
   // cases occupées par les autres figurines : 1 = allié (traversable), 2 = ennemi (bloquant)
-  const kind = SPRITES[u.sprite].kind, occ = new Uint8Array(N);
+  const kind = unitKind(u), occ = new Uint8Array(N);
   map.units.forEach(o => {
-    if (o === u) return;
-    const v = SPRITES[o.sprite].kind === kind ? 1 : 2;
+    if (o === u || isKO(o)) return;   // une figurine KO ne bloque pas le passage
+    const v = unitKind(o) === kind ? 1 : 2;
     for (let y = o.y; y < o.y + o.size; y++) for (let x = o.x; x < o.x + o.size; x++)
       if (inMap(x, y)) occ[y*cols + x] = Math.max(occ[y*cols + x], v);
   });
@@ -93,26 +121,18 @@ function computeZones(u) {
     for (let j = y; j < y + s; j++) for (let k = x; k < x + s; k++) move[j*cols + k] = 1;
   }
 
-  // zone d'attaque depuis chaque case d'arrivée ; à distance : bonus de portée si on est plus haut
+  // zone d'attaque depuis chaque case d'arrivée (portée, hauteur, ligne de vue)
   const atk = st.attaque, ranged = atk > 1, bonus = ranged ? (R.bonus_portee_hauteur || 0) : 0;
-  const reach = atk + Math.ceil(MAX_LEVEL * 2 * bonus);
+  const reach = atk + Math.ceil(MAX_LEVEL * 2 * bonus), hg = hitContext(u);
   for (const [x, y, L] of ends) {
     for (let ty = Math.max(0, y - reach); ty <= Math.min(rows - 1, y + s - 1 + reach); ty++)
       for (let tx = Math.max(0, x - reach); tx <= Math.min(cols - 1, x + s - 1 + reach); tx++) {
         const k = ty*cols + tx;
-        if (attack[k]) continue;
-        const ddx = Math.max(0, x - tx, tx - (x + s - 1)), ddy = Math.max(0, y - ty, ty - (y + s - 1));
-        const d = R.attaque_diagonale ? Math.max(ddx, ddy) : ddx + ddy;
-        if (d === 0) continue;
-        const dl = L - surf[k];
-        let range = atk;
-        if (ranged) range += Math.max(0, Math.floor(dl * bonus + 1e-6));
-        else if (Math.abs(dl) > R.melee_hauteur_max + 1e-6) continue;
-        if (d <= range) attack[k] = 1;
+        if (!attack[k] && canHitCell(hg, x, y, L, tx, ty)) attack[k] = 1;
       }
   }
 
-  const z = { dist, move, attack, sx, sy };
+  const z = { dist, move, attack, sx, sy, ends };
   zoneCache.set(u.id, z);
   return z;
 }
@@ -129,7 +149,7 @@ function unitInZone(target, z) {
 
 // Zones à afficher pour ce rendu : [{ u, z, strong }]
 function zonesToDraw() {
-  if (mode !== 'play' || zoneMode === 'none' || !STATS) return [];
+  if (mode !== 'play' || zoneMode === 'none' || !STATS || playerSight()) return [];
   if (zoneMode === 'all')
     return map.units.map(u => ({ u, z: computeZones(u), strong: u === playSel }));
   const u = playSel || (hover && !drag ? hitUnit(hover.wx, hover.wy) : null);
