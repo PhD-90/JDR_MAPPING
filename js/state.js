@@ -4,8 +4,10 @@ let map = newMap(20, 14);
 let cam = { x:0, y:0, z:1 };
 let mode = 'edit';                 // 'edit' = éditeur, 'play' = partie
 let tool = 'object', curFloor = 'stone', curObj = 'wall', brush = 1;
+let brushShape = 'square';
 let sel = null, hover = null;
 let undoStack = [];
+let redoStack = [];
 let drag = null, spaceDown = false;
 
 function newMap(cols, rows) {

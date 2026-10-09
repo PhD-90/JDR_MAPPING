@@ -7,15 +7,27 @@ function drawFloor(c, x, y, f, lift = 0, L = 0) {
   c.fillRect(px, py, T + 0.5, T + 0.5);
   switch (F.deco) {
     case 'tiles':
-      c.strokeStyle = 'rgba(0,0,0,.28)'; c.lineWidth = 2;
-      c.strokeRect(px+3, py+3, T-6, T-6); break;
+      c.strokeStyle = 'rgba(38,28,17,.4)'; c.lineWidth = 2;
+      c.strokeRect(px+2, py+2, T-4, T-4);
+      c.strokeStyle = 'rgba(255,238,198,.25)'; c.lineWidth = 1;
+      c.strokeRect(px+4, py+4, T-8, T-8); break;
     case 'stone':
       c.fillStyle = 'rgba(0,0,0,.15)';
       for (let i = 0; i < 3; i++) c.fillRect(px + hash(x+i*7, y)*T*0.85, py + hash(x, y+i*5)*T*0.85, 4, 3);
       break;
     case 'grass':
-      c.fillStyle = shade(F.c, 1.18);
-      for (let i = 0; i < 5; i++) c.fillRect(px + hash(x+i*3, y+1)*T*0.9, py + hash(x+2, y+i*9)*T*0.85, 2, 5);
+      c.strokeStyle = shade(F.c, 0.77); c.lineWidth = .8; c.beginPath();
+      for (let i = 0; i < 5; i++) {
+        const gx = px + 4 + hash(x+i*3, y+1)*(T-8), gy = py + 6 + hash(x+2, y+i*9)*(T-12);
+        c.moveTo(gx-2, gy-3); c.lineTo(gx, gy+2); c.lineTo(gx+3, gy-5);
+      }
+      c.stroke(); break;
+    case 'earth':
+      c.fillStyle = 'rgba(44,30,14,.15)';
+      for (let i = 0; i < 7; i++) {
+        const ex = px + hash(x+i*7, y+4)*(T-3), ey = py + hash(y+i*3, x+5)*(T-3);
+        c.fillRect(ex, ey, 1.5 + hash(x+i, y)*2, 1);
+      }
       break;
     case 'planks':
       c.strokeStyle = 'rgba(0,0,0,.3)'; c.lineWidth = 1;
@@ -34,6 +46,8 @@ function drawFloor(c, x, y, f, lift = 0, L = 0) {
       c.strokeStyle = 'rgba(255,255,255,.25)'; c.lineWidth = 1.5;
       c.beginPath(); const wx = px + r*T*0.5 + 6, wy = py + hash(y, x)*T*0.6 + 10;
       c.arc(wx, wy, 6, Math.PI*1.1, Math.PI*1.9); c.stroke();
+      c.strokeStyle = 'rgba(255,244,217,.12)'; c.beginPath();
+      c.moveTo(px + 8, py + T - 12); c.quadraticCurveTo(px + T/2, py + T - 16, px + T - 7, py + T - 12); c.stroke();
       break;
   }
 }
@@ -280,15 +294,31 @@ function renderMap(c, ui) {
   curZones = zones;
   const brushSet = edit && hover && (tool === 'floor' || tool === 'relief')
     ? new Set(brushCells(hover.cx, hover.cy).map(([x, y]) => y*cols + x)) : null;
+  const rect = edit && drag?.mode === 'rect' ? rectBounds(drag.x0, drag.y0, drag.x1, drag.y1) : null;
+  const modulePreview = edit && drag?.mode === 'module' ? drag.plan : null;
 
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
       const i = y*cols + x, L = map.height[i], top = y*T - L*lh;
       drawFloor(c, x, y, map.floor[i], L*lh, L);
-      if (map.grid) { c.strokeStyle = 'rgba(0,0,0,.35)'; c.lineWidth = ui ? 1 / cam.z : 1; c.strokeRect(x*T, top, T, T); }
+      if (map.grid) { c.strokeStyle = 'rgba(35,27,17,.27)'; c.lineWidth = ui ? 1 / cam.z : 1; c.strokeRect(x*T, top, T, T); }
       drawCliff(c, x, y, map.floor[i], L);
       if (zones.length) drawZoneCell(c, zones, i, x, top);
       if (brushSet && brushSet.has(i)) { c.fillStyle = 'rgba(224,165,43,.3)'; c.fillRect(x*T, top, T, T); }
+      if (modulePreview?.cells.has(i)) {
+        const previewTop = y * T - (modulePreview.levels.get(i) ?? L) * lh;
+        c.fillStyle = modulePreview.error ? '#f97058' : FLOORS[modulePreview.cells.get(i)].c;
+        c.globalAlpha = .7; c.fillRect(x*T, previewTop, T, T); c.globalAlpha = 1;
+        c.strokeStyle = modulePreview.error ? '#ff8b72' : '#a9ecc0'; c.lineWidth = 1 / cam.z;
+        c.strokeRect(x*T, previewTop, T, T);
+      }
+      if (rect && x >= rect.x0 && x <= rect.x1 && y >= rect.y0 && y <= rect.y1) {
+        c.fillStyle = FLOORS[curFloor].c; c.globalAlpha = 0.65; c.fillRect(x*T, top, T, T); c.globalAlpha = 1;
+        c.strokeStyle = '#ffd979'; c.lineWidth = 1 / cam.z; c.strokeRect(x*T, top, T, T);
+      }
+      if (edit && hover && (tool === 'fill' || tool === 'rect') && x === hover.cx && y === hover.cy) {
+        c.strokeStyle = '#ffd979'; c.lineWidth = 3 / cam.z; c.strokeRect(x*T + 1, top + 1, T - 2, T - 2);
+      }
       if (edit && tool === 'relief' && L > 0) {
         c.fillStyle = 'rgba(0,0,0,.6)'; c.font = 'bold 14px system-ui';
         c.textAlign = 'center'; c.textBaseline = 'middle';
@@ -309,6 +339,14 @@ function renderMap(c, ui) {
 
   if (!ui) return;
   if (mode === 'play') { drawFog(c); drawMarks(c); drawAnimEffects(c); if (!PLAYER_VIEW) drawPlayOverlay(c); return; }
+  if (modulePreview) drawMapModuleOverlay(c, modulePreview);
+  if (rect) {
+    const label = `${rect.x1 - rect.x0 + 1} × ${rect.y1 - rect.y0 + 1} cases · ${FLOORS[curFloor].name}`;
+    c.save(); c.font = `bold ${13 / cam.z}px system-ui`; c.textAlign = 'left'; c.textBaseline = 'bottom';
+    const x = rect.x0 * T, y = rect.y0 * T - levelAt(rect.x0, rect.y0) * lh - 5 / cam.z;
+    c.fillStyle = '#16181dee'; c.fillRect(x, y - 20 / cam.z, c.measureText(label).width + 12 / cam.z, 22 / cam.z);
+    c.fillStyle = '#ffd979'; c.fillText(label, x + 6 / cam.z, y - 3 / cam.z); c.restore();
+  }
 
   // fantôme de placement
   if (hover && tool === 'object' && !drag) {
@@ -328,13 +366,24 @@ function renderMap(c, ui) {
   }
 }
 
+// Bordure de la carte posée sur la table ; indépendante du contenu et des exports.
+function drawMapFrame(c) {
+  const w = map.cols * T, h = map.rows * T;
+  c.save(); c.shadowColor = '#0009'; c.shadowBlur = 20; c.shadowOffsetY = 7;
+  c.fillStyle = '#b99b68'; c.fillRect(-7, -7, w + 14, h + 14);
+  c.shadowColor = 'transparent'; c.strokeStyle = '#58432a'; c.lineWidth = 2;
+  c.strokeRect(-5, -5, w + 10, h + 10);
+  c.restore();
+}
+
 function draw() {
   if (SIM) return;   // pendant une simulation, la carte affichée n'est pas celle du MJ
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.fillStyle = '#16181d'; ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.clearRect(0, 0, cv.width, cv.height);
   const sh = screenShake();   // tremblement lors des attaques puissantes
   ctx.setTransform(cam.z*dpr, 0, 0, cam.z*dpr, (cam.x + sh.x)*dpr, (cam.y + sh.y)*dpr);
   ctx.imageSmoothingEnabled = false;
+  drawMapFrame(ctx);
   renderMap(ctx, true);
 }
 let raf = 0;

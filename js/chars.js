@@ -74,6 +74,11 @@ const DERIVED = [
 function buildSheetForm() {
   const sel = (id, obj) => `<select id="${id}">${Object.entries(obj).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join('')}</select>`;
   $('sheetForm').innerHTML = `
+    <div class="page-heading">
+      <span class="page-eyebrow">Archives des aventuriers</span>
+      <h1>Le livre des personnages</h1>
+      <p>Chaque héros a une histoire. Écris la prochaine page.</p>
+    </div>
     <div class="sheet-top">
       <div class="portrait"><canvas id="shPortrait" class="px" width="16" height="16"></canvas></div>
       <div class="sheet-id">

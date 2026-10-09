@@ -39,19 +39,60 @@ $('btnDel').onclick = () => { if (sel) { pushUndo(); removeObj(sel); changed(); 
 
 // ---------- Palettes ----------
 function setTool(t) {
+  drag = null;
   tool = t;
-  document.querySelectorAll('[data-tool]').forEach(b => b.classList.toggle('on', b.dataset.tool === t));
+  document.querySelectorAll('[data-tool]').forEach(b => {
+    b.classList.toggle('on', b.dataset.tool === t);
+    b.setAttribute('aria-pressed', String(b.dataset.tool === t));
+  });
+  syncEditorTool();
   redraw();
 }
+
+function syncEditorTool() {
+  const names = { select: 'Sélection', floor: 'Pinceau', fill: 'Remplissage', rect: 'Rectangle', object: 'Élément', relief: 'Relief', erase: 'Gomme' };
+  const hints = {
+    select: 'Glisse un décor pour le déplacer. R : pivoter · Ctrl+D : dupliquer.',
+    floor: 'Glisse pour peindre. I au-dessus d’une case : prélever son sol.',
+    fill: 'Clique pour remplacer les cases reliées de même sol. Les décors ne limitent pas le remplissage.',
+    rect: 'Glisse d’un coin à l’autre, puis relâche pour peindre. Échap : annuler le tracé.',
+    object: OBJECTS[curObj].shape === 'wall' ? 'Glisse pour tracer un mur continu. Clic droit : supprimer.' : 'Clique pour placer ce décor. V : le sélectionner et le déplacer.',
+    relief: 'Clic gauche : monter · Clic droit : descendre. Glisse pour étendre le même niveau.',
+    erase: 'Glisse sur les décors à retirer. Le sol est conservé.'
+  };
+  const material = ['floor', 'fill', 'rect'].includes(tool) ? FLOORS[curFloor].name : tool === 'object' ? OBJECTS[curObj].name : '';
+  $('editorToolName').textContent = tool === 'module' ? `Module · ${MAP_MODULES[mapModule].name}` : names[tool] + (material ? ` · ${material}` : '');
+  $('editorToolHint').textContent = tool === 'module' ? MAP_MODULES[mapModule].hint : hints[tool];
+  $('brushOptions').classList.toggle('hidden', !['floor', 'relief'].includes(tool));
+  $('brushValue').textContent = brush === 1 ? '1 case' : `${brush} × ${brush} cases`;
+  syncMapModuleUI();
+}
 document.querySelectorAll('[data-tool]').forEach(b => b.onclick = () => setTool(b.dataset.tool));
-$('brush').oninput = e => brush = +e.target.value;
+$('brush').oninput = e => { brush = +e.target.value; syncEditorTool(); redraw(); };
+$('brushShape').onchange = e => { brushShape = e.target.value; redraw(); };
+$('btnUndo').onclick = undo;
+$('btnRedo').onclick = redo;
+
+const objectCategory = k => ['wall', 'house', 'pillar', 'stairs'].includes(k) ? 'structure'
+  : ['tree', 'rock'].includes(k) ? 'nature' : OBJECTS[k].shape === 'token' ? 'token' : 'furniture';
+function filterObjects() {
+  const query = norm($('objSearch').value), category = $('objCategory').value;
+  let count = 0;
+  document.querySelectorAll('[data-obj]').forEach(b => {
+    const visible = norm(OBJECTS[b.dataset.obj].name).includes(query) && (!category || objectCategory(b.dataset.obj) === category);
+    b.classList.toggle('hidden', !visible); if (visible) count++;
+  });
+  $('objEmpty').classList.toggle('hidden', count > 0);
+}
+$('objSearch').oninput = filterObjects;
+$('objCategory').onchange = filterObjects;
 
 function buildPalettes() {
   const fp = $('floorPal');
   Object.entries(FLOORS).forEach(([k, f]) => {
     const b = document.createElement('button'); b.className = 'item'; b.dataset.floor = k;
     b.innerHTML = `<div class="sw" style="background:${f.c}"></div>${f.name}`;
-    b.onclick = () => { curFloor = k; setTool('floor'); markPal(); };
+    b.onclick = () => { curFloor = k; setTool(['fill', 'rect'].includes(tool) ? tool : 'floor'); markPal(); };
     fp.appendChild(b);
   });
   const op = $('objPal');
@@ -67,7 +108,7 @@ function buildPalettes() {
     b.onclick = () => { curObj = k; setTool('object'); markPal(); };
     op.appendChild(b);
   });
-  markPal();
+  markPal(); filterObjects();
 }
 function markPal() {
   document.querySelectorAll('[data-floor]').forEach(b => b.classList.toggle('on', b.dataset.floor === curFloor));
@@ -95,8 +136,9 @@ $('btnResize').onclick = () => {
   if (sel && !map.objects.includes(sel)) select(null);
   syncMapUI(); fit(); changed();
 };
+$('depth').addEventListener('focus', pushUndo);
 $('depth').oninput = e => { map.depth = +e.target.value; changed(); };
-$('showGrid').onchange = e => { map.grid = e.target.checked; changed(); };
+$('showGrid').onchange = e => { pushUndo(); map.grid = e.target.checked; changed(); };
 $('btnFlat').onclick = () => { pushUndo(); map.height.fill(0); changed(); };
 $('btnFill').onclick = () => { pushUndo(); map.floor.fill(curFloor); changed(); };
 $('btnFit').onclick = () => fit();

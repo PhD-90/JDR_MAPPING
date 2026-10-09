@@ -5,9 +5,9 @@
 **L'atelier du maître du jeu : carte du monde, cartes de combat en 2D semi-3D, fiches de personnages
 et suivi des combats en direct.**
 
-<a href="docs/visite-guidee.mp4"><img src="docs/visite-guidee.gif" alt="Visite guidée de JDR Mapping : monde, éditeur, personnages, combat, sorts, IA, simulateur, outils du MJ" width="100%"></a>
+<a href="docs/visite-guidee.mp4"><img src="docs/visite-guidee.gif" alt="Visite guidée de JDR Mapping, thème Grimoire : monde, modules de carte, personnages, combat, sorts, IA, simulateur et outils du MJ" width="100%"></a>
 
-**🎬 [Regarder la visite guidée en vidéo (MP4, 1 min 10)](docs/visite-guidee.mp4)** · toutes les fonctionnalités en 20 scènes
+**🎬 [Regarder la visite guidée en vidéo (MP4, 1 min 42)](docs/visite-guidee.mp4)** · 28 scènes avec le thème Grimoire, les modules de création et les attaques des 15 nouveaux monstres
 
 Génère le monde de ta campagne, suis le groupe de ville en donjon, construis les cartes de combat,
 puis fais jouer l'affrontement : initiative, points de vie, sorts, jets de dés, brouillard de guerre,
@@ -16,6 +16,10 @@ Et quand tu veux : **règles strictes**, **IA pour les héros et les monstres**,
 une rencontre 200 fois pour en mesurer la difficulté réelle. Le MJ garde toujours la main.
 
 *Aucune installation, aucun compte, aucun serveur : ouvre `index.html` dans ton navigateur.*
+
+**Habillage Grimoire** : panneaux en cuir sombre, fiches et outils du MJ sur parchemin, accents rouge et or,
+icônes dessinées et cartes posées sur une table de jeu. Les textures et polices fonctionnent hors ligne.
+Les nouveaux mondes utilisent le style parchemin, désactivable dans les options d'affichage.
 
 </div>
 
@@ -198,7 +202,9 @@ Sur la carte du monde, un **⚔** à côté d'un lieu indique qu'il a une carte 
 | Outil | Utilisation |
 | --- | --- |
 | 🖐 **Sélection** | Déplacer un élément, le redimensionner (poignée orange), le pivoter (**R**), le dupliquer (**Ctrl+D**) |
-| 🖌 **Sol** | Peindre au pinceau (1 à 5 cases) |
+| 🖌 **Sol** | Peindre avec un pinceau carré ou rond (1 à 10 cases), avec des traits continus |
+| 🪣 **Remplir** | Remplacer une zone de même sol reliée par les côtés ; les décors ne bloquent pas le remplissage |
+| ▭ **Rectangle** | Glisser entre deux coins, voir les dimensions, puis relâcher pour peindre ; **Échap** annule l'aperçu |
 | 📦 **Élément** | Poser un élément ; les murs se tracent en glissant |
 | ⛰ **Relief** | Clic gauche monte, clic droit descend, glisser étend au même niveau |
 | 🧽 **Gomme** | Effacer des éléments (clic droit efface aussi avec les autres outils) |
@@ -206,12 +212,33 @@ Sur la carte du monde, un **⚔** à côté d'un lieu indique qu'il a une carte 
 - **14 sols** : pierre, dalles, herbe, terre, sable, parquet, eau, lave, neige, pavés, roche, boue, glace, vide.
 - **Éléments** : mur, maison, caisse, rocher, arbre, colonne, tonneau, table, coffre, escalier, et des pions simples.
   Chacun a une largeur, une profondeur, une **hauteur**, une couleur et un nom réglables.
+  Recherche par nom (avec ou sans accents) et filtres Construction, Nature, Mobilier et Pions.
+- **Historique** : boutons Annuler / Rétablir ; un trait de pinceau, un mur ou un geste d'effacement s'annule en une fois.
 - **Carte** : nombre de colonnes et de lignes, **Effet 3D** (force du relief), grille, remplir, aplanir.
 - **Fichier** : nouvelle carte, sauvegarder / charger en `.json`, **exporter en PNG**.
 
+### Modules de création
+
+Les boutons **Salle**, **Chemin**, **Rivière** et **Dispersion** se trouvent à gauche de l'éditeur.
+Choisis un module, règle ses options à droite, puis glisse sur la carte. L'aperçu est appliqué au relâchement ;
+**Échap** ou clic droit l'annule. **Ctrl+Z** annule toute la création et **Ctrl+Maj+Z** la rétablit.
+
+| Module | Création et réglages |
+| --- | --- |
+| 🏰 **Salle** | Rectangle d'au moins 4 × 4 cases avec sol, murs et ouverture au nord, sud, est ou ouest. Sol, hauteur des murs et largeur de l'entrée réglables. La zone doit être libre de décors et de figurines ; l'option Aplanir utilise le niveau du premier coin. |
+| 〰 **Chemin** | Tracé libre et continu, avec un revêtement au choix et une largeur de 1 à 6 cases. |
+| 🌊 **Rivière** | Tracé d'eau de 1 à 6 cases de large, avec berges de sable facultatives. Les rivières existantes restent en eau au niveau des berges. |
+| 🌲 **Dispersion** | Répartit une forêt, des rochers ou des caisses et tonneaux dans un rectangle. Densité réglable ; évite l'eau, la lave, le vide et les cases occupées. Limite de 250 éléments par geste. |
+
+Les chemins et rivières conservent le relief et les décors. Tous les éléments créés restent éditables et sont inclus dans la sauvegarde JSON et l'export PNG.
+
+| Aperçu d’une salle avec son entrée | Tracé d’une rivière et de ses berges |
+| --- | --- |
+| ![Module Salle : murs, sol et entrée réglables](docs/images/modules.png) | ![Module Rivière : tracé continu avec berges de sable](docs/images/riviere.png) |
+
 ### Presets
 
-Dix décors générés aléatoirement, avec du relief : **chaque clic donne une nouvelle variante**
+Ouvre la section **Presets de carte** à gauche pour accéder aux dix décors générés aléatoirement, avec du relief : **chaque clic donne une nouvelle variante**
 (décocher « Ajouter le décor » pour ne garder que le sol et les murs).
 
 ![Presets de carte](docs/images/presets.png)
@@ -323,9 +350,28 @@ Boutons : **➕ Placer sur la carte**, **↻ Mettre à jour les figurines sur la
 À gauche : **Mes personnages** (les fiches), puis les **personnages** et **monstres** de base. Choisis une figurine puis
 clique sur la carte (**Maj+clic** pour en poser plusieurs). Glisser pour déplacer, clic droit pour retirer.
 
+Le bestiaire comprend **21 monstres**, dont **15 nouveaux**. La recherche accepte les noms sans accents ;
+le filtre **Taille** affiche les petits, moyens ou gros monstres. Chaque bouton indique sa catégorie et,
+pour les gros, son empreinte sur la grille.
+
+| Nouveaux petits · 1 × 1 case | Nouveaux moyens · 1 × 1 case | Nouveaux gros |
+| --- | --- | --- |
+| Kobold | Bandit | Ogre · 2 × 2 |
+| Rat géant | Zombie | Troll · 2 × 2 |
+| Chauve-souris | Goule | Minotaure · 2 × 2 |
+| Diablotin | Gnoll | Golem de pierre · 2 × 2 |
+| Scarabée de feu | Homme-lézard | Géant des collines · 3 × 3 |
+
+Les petits ont une silhouette compacte ; petits et moyens occupent une case. Les gros doivent disposer
+de toute leur surface pour se déplacer : un géant ne traverse pas un couloir de deux cases de large.
+Chaque ajout possède ses statistiques, son attaque animée et ses habitats dans le générateur de rencontres.
+Les valeurs sont ajustables pour cette application dans `data/caracteristiques.txt`, y compris hors ligne.
+
+![Les quinze nouveaux monstres sur la carte, des petites créatures aux géants](docs/images/bestiaire.png)
+
 <div align="center">
 
-![Figurines](docs/images/figurines.png)
+![Palette des personnages et des gros monstres, avec le filtre Taille](docs/images/figurines.png)
 
 </div>
 
@@ -347,6 +393,21 @@ hauteur (`▲2`) et états. Quand une figurine est sélectionnée, les autres af
 | Orc | 6 | 1 | 15 | 13 | +5 | 1d12+3 | +1 | 100 | |
 | Loup | 8 | 1 | 11 | 13 | +4 | 2d4+2 | +2 | 50 | nage |
 | Dragon | 8 | 3 | 75 | 17 | +7 | 2d10+4 | +0 | 2 300 | 2×2 cases, vol, 🐉 souffle de feu |
+| Kobold | 6 | 1 | 5 | 12 | +4 | 1d4+2 | +2 | 25 | petit, meute, fuite agile |
+| Rat géant | 6 | 1 | 7 | 12 | +4 | 1d4+2 | +2 | 25 | petit, nage, meute |
+| Chauve-souris | 8 | 1 | 4 | 13 | +3 | 1d4+1 | +3 | 10 | petite, vol, fuite agile |
+| Diablotin | 8 | 4 | 13 | 13 | +5 | 1d6+3 | +3 | 100 | petit, vol, dard de poison |
+| Scarabée de feu | 4 | 1 | 8 | 14 | +3 | 1d6+1 | +0 | 25 | petit, dégâts et résistance au feu |
+| Bandit | 6 | 6 | 11 | 12 | +3 | 1d6+1 | +1 | 25 | arc |
+| Zombie | 4 | 1 | 22 | 8 | +3 | 1d6+1 | −2 | 50 | ne grimpe pas, sans peur, immunité au poison |
+| Goule | 6 | 1 | 22 | 12 | +4 | 2d4+2 | +2 | 200 | escalade 2, fuite agile, immunité au poison |
+| Gnoll | 6 | 1 | 22 | 15 | +4 | 1d8+2 | +1 | 100 | meute, agressif |
+| Homme-lézard | 6 | 1 | 27 | 15 | +4 | 1d6+2 | +0 | 200 | nage, 2 attaques |
+| Ogre | 6 | 1 | 59 | 11 | +6 | 2d8+4 | −1 | 450 | 2×2 cases, agressif |
+| Troll | 6 | 1 | 84 | 15 | +7 | 2d6+4 | +1 | 1 100 | 2×2 cases, nage, escalade 2, 2 attaques |
+| Minotaure | 8 | 1 | 76 | 14 | +6 | 2d10+4 | +0 | 700 | 2×2 cases, agressif, renversement |
+| Golem de pierre | 4 | 1 | 105 | 17 | +7 | 2d8+5 | −1 | 1 800 | 2×2 cases, 2 attaques, immunité au poison |
+| Géant des collines | 6 | 1 | 115 | 13 | +8 | 3d8+5 | −1 | 1 800 | 3×3 cases, 2 attaques, renversement |
 
 ### 🟩 Portées de déplacement et d'attaque
 
@@ -434,6 +495,21 @@ et **vulnérabilités** (double). Les fiches les calculent ; les figurines de ba
 | Orc | **Agressif** : fonce vers l'ennemi en action bonus |
 | Loup | **Tactique de meute** (avantage si un allié est au contact de la cible), **renversement** (FOR DD 11 ou à terre) |
 | Dragon | **Multiattaque** (2 attaques), **immunisé** au feu, **souffle** qui se recharge sur 5-6, ne fuit jamais |
+| Kobold | **Meute** et **fuite agile** : combat au contact avec ses alliés, puis peut se désengager |
+| Rat géant | **Meute**, nage et morsure perforante |
+| Chauve-souris | **Vol** et **fuite agile** ; morsure au contact |
+| Diablotin | **Vol**, dard de poison à distance, **immunisé** au feu et au poison, **résistant** au froid |
+| Scarabée de feu | Mandibules infligeant des dégâts de **feu**, **résistant** au feu |
+| Bandit | Arc à **6 cases** ; l’IA cherche une position de tir |
+| Zombie | **Immunisé** au poison, ne fuit jamais ; lent et incapable de grimper |
+| Goule | **Immunisée** au poison, **fuite agile**, escalade de 2 niveaux, ne fuit jamais |
+| Gnoll | **Meute** et **agressif** : fonce en action bonus |
+| Homme-lézard | Nage, lance et **2 attaques** par action |
+| Ogre | **Agressif**, massue à 2d8+4, empreinte de **2 × 2 cases** |
+| Troll | Nage, escalade de 2 niveaux, **2 attaques**, ne fuit jamais |
+| Minotaure | **Agressif** et **renversement** contre les cibles d’une case |
+| Golem de pierre | **2 attaques**, **immunisé** au poison, ne fuit jamais |
+| Géant des collines | **3 × 3 cases**, **2 attaques**, **renversement** contre les cibles d’une case |
 
 Les monstres très blessés dont le camp perd **prennent la fuite**.
 
@@ -464,6 +540,30 @@ le chiffre s'envole au-dessus de la cible ; une attaque ratée la fait **esquive
 | Loup | Morsure | Trois griffures rouges |
 | Slime | Crachat d'acide | Boule verte, éclaboussures, flaque |
 | Dragon | Souffle de feu | Flot de flammes, cible en feu, tremblement de l'écran |
+| Kobold | Pointe de lance | Deux estocades rapides aux reflets dorés |
+| Rat géant | Morsure de rat | Bond et traces de morsure beige rosé |
+| Chauve-souris | Morsure en piqué | Bond vers la cible et griffures violettes |
+| Diablotin | Dard venimeux | Projectile vert, traînée et éclaboussures de poison |
+| Scarabée de feu | Mandibules brûlantes | Éclat orangé et onde à l’impact |
+| Bandit | Flèche de bandit | Flèche en cloche vers la cible |
+| Zombie | Coup pesant | Bond lent, éclat et onde verdâtre |
+| Goule | Griffes de goule | Trois griffures bleu pâle |
+| Gnoll | Hache du gnoll | Arc vertical, poussière et léger tremblement |
+| Homme-lézard | Lance reptilienne | Deux estocades vert pâle |
+| Ogre | Massue de l’ogre | Onde à l’impact et tremblement de l’écran |
+| Troll | Griffes du troll | Griffures vertes et léger tremblement |
+| Minotaure | Hache du labyrinthe | Grand arc vertical, poussière et tremblement |
+| Golem de pierre | Poing de pierre | Éclat turquoise, onde et fort tremblement |
+| Géant des collines | Massue du géant | Impact lent, large onde et fort tremblement |
+
+**Les 15 nouvelles attaques en action** : chaque animation ci-dessous présente successivement les cinq monstres de sa catégorie,
+avec leurs jets et leurs dégâts. Le nom du monstre et de son attaque figurent dans le bandeau.
+
+| Petits monstres | Monstres moyens | Gros monstres |
+| --- | --- | --- |
+| ![Attaques du kobold, du rat géant, de la chauve-souris, du diablotin et du scarabée de feu](docs/images/attaques-petits.gif) | ![Attaques du bandit, du zombie, de la goule, du gnoll et de l’homme-lézard](docs/images/attaques-moyens.gif) | ![Attaques de l’ogre, du troll, du minotaure, du golem de pierre et du géant des collines](docs/images/attaques-gros.gif) |
+
+Les démonstrations sont aussi incluses dans la [visite guidée en vidéo](docs/visite-guidee.mp4), pour les regarder en grand.
 
 ### 🔮 Capacités et sorts
 
@@ -757,7 +857,9 @@ Tout est enregistré **automatiquement dans le navigateur** (stockage local). Po
 
 ## ⌨️ Raccourcis
 
-**Éditeur et Jouer** : molette = zoom · glisser avec le clic molette (ou **Espace** + glisser) = déplacer la vue · **Ctrl+Z** = annuler.
+**Éditeur et Jouer** : molette = zoom · glisser avec le clic molette (ou **Espace** + glisser) = déplacer la vue · **Ctrl+Z** = annuler · **Ctrl+Maj+Z** ou **Ctrl+Y** = rétablir.
+
+**Outils de l'éditeur** : **V** = sélection · **B** = pinceau · **G** = remplissage · **U** = rectangle · **E** = gomme · **I** au survol d'une case = prélever son sol.
 
 | 🛠 Éditeur | | 🎲 Jouer | |
 | --- | --- | --- | --- |
@@ -767,7 +869,7 @@ Tout est enregistré **automatiquement dans le navigateur** (stockage local). Po
 | **Ctrl+D** | Dupliquer | **Entrée** / **N** | Fin du tour |
 | **Suppr** | Effacer l'élément | **Suppr** | Retirer la figurine |
 | Flèches | Déplacer d'une case | Flèches | Déplacer d'une case |
-| **Échap** | Outil Sélection | **Échap** | Annuler le ciblage ou l'outil en cours |
+| **Échap** | Annuler le rectangle en cours, sinon revenir à la sélection | **Échap** | Annuler le ciblage ou l'outil en cours |
 
 | 🌍 Monde | | 📺 Écran des joueurs | |
 | --- | --- | --- | --- |
@@ -855,10 +957,12 @@ en double-cliquant le fichier. Les scripts sont chargés dans cet ordre par `ind
 
 ```text
 index.html                 Page, onglets et panneaux
-css/style.css              Styles
+css/style.css              Structure et composants de l'interface
+css/grimoire.css           Thème fantasy : cuir, parchemin, typographie, navigation et petits écrans
 data/caracteristiques.txt  Règles de déplacement et statistiques des figurines de base
 docs/images/               Images de ce README
 docs/visite-guidee.*       Visite guidée (GIF en tête du README, vidéo MP4)
+scripts/                  Capture des médias du README dans un navigateur isolé
 
 js/config.js     Sols (FLOORS) et éléments (OBJECTS)
 js/utils.js      Couleurs, bruit, aléatoire
@@ -873,6 +977,7 @@ js/engine.js     Moteur de règles : mode MJ / règles strictes, hasard à grain
                  types de dégâts, abri, durée des états, concentration, attaques d'opportunité
 js/render.js     Rendu de la carte en 2D semi-3D
 js/editor.js     Ajout / suppression, pinceau, annulation
+js/mapmodules.js Salles, chemins, rivières et dispersion de décors avec aperçu et annulation
 js/presets.js    Presets de carte générés
 js/play.js       Onglet Jouer : figurines, rendu, souris, panneau de la figurine
 js/combat.js     Initiative, PV, attaques, états, jets contre la mort, journal, dés
@@ -911,6 +1016,21 @@ js/main.js       Démarrage
 | Un biome | `BIOMES` (`js/worldgen.js`) avec sa couleur et son coût de voyage |
 | Un générateur du MJ | `js/gmtools.js` (carte dans `buildGmTab`) |
 | Une règle de déplacement | Section `[regles]` de `data/caracteristiques.txt`, lue dans `js/ranges.js` |
+
+### Régénérer les captures et la vidéo
+
+Sous Windows, avec **Microsoft Edge**, **Python + Pillow**, **FFmpeg** et **FFprobe** dans le PATH :
+
+```powershell
+py scripts/generate_readme_media.py
+```
+
+Le script capture l’application dans un profil temporaire, avec une partie de démonstration indépendante des sauvegardes personnelles.
+Il recrée les PNG, les quatre GIF d’attaques et la visite guidée en MP4 et GIF. Les scènes sont définies dans `scripts/readme-scenes.js`.
+Les images intermédiaires restent dans `.tmp/readme-media` pour vérification ; `--only modules` refait une scène et `--skip-capture` relance seulement l’encodage.
+
+`py scripts/check_bestiary.py` vérifie aussi les monstres, les empreintes sur la carte, les filtres,
+les anciens fichiers de caractéristiques et 75 combats simulés dans un profil isolé.
 
 ---
 

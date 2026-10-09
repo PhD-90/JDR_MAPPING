@@ -14,7 +14,7 @@ const wcv = $('wcv'), wctx = wcv.getContext('2d');
 // ---------- Création / chargement ----------
 function newWorld(seed = (Math.random() * 1e6) | 0, style = 'continent') {
   const w = { v: 1, seed, style, W: 360, H: 240, scale: 8, day: 1, name: '', locations: [], regions: [], pos: {}, journal: [],
-              opts: { regions: true, rivers: true, symbols: true, labels: true, parchment: false } };
+              opts: { regions: true, rivers: true, symbols: true, labels: true, parchment: true } };
   const t = genTerrain(w), p = genPlaces(w, t);
   Object.assign(w, { name: p.name, locations: p.locations, regions: p.regions });
   WT = null; world = w; buildWorldCache(t);
@@ -199,9 +199,11 @@ function drawWorld() {
   if (mode !== 'world' || !WT) return;
   const c = wctx, z = wcam.z, o = world.opts, { W, H } = WT.t;
   c.setTransform(1, 0, 0, 1, 0, 0);
-  c.fillStyle = o.parchment ? '#2a2318' : '#0f1a2b'; c.fillRect(0, 0, wcv.width, wcv.height);
+  c.clearRect(0, 0, wcv.width, wcv.height);
   c.setTransform(z * dpr, 0, 0, z * dpr, wcam.x * dpr, wcam.y * dpr);
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
+  c.save(); c.shadowColor = '#0008'; c.shadowBlur = 18; c.shadowOffsetY = 6;
+  c.fillStyle = '#b99b68'; c.fillRect(-6, -6, W * WCELL + 12, H * WCELL + 12); c.restore();
   c.drawImage(WT.img, 0, 0, W * WCELL, H * WCELL);
   if (o.regions) { c.drawImage(WT.tint, 0, 0, W * WCELL, H * WCELL); }
 

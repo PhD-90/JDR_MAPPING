@@ -66,6 +66,9 @@ function advance() {
 // Début du tour de la figurine active : on saute les figurines hors de combat
 // (personnage inconscient : jet contre la mort automatique ; étourdi : passe son tour)
 function beginTurn() {
+  // Un ciblage appartient au tour qui vient de se terminer.
+  attackMode = false; actionMode = null;
+  if (!SIM) $('attackHint').classList.add('hidden');
   for (let guard = map.order.length * 2 + 2; guard > 0; guard--) {
     const u = activeUnit();
     if (!u) { advance(); continue; }
@@ -104,6 +107,51 @@ function beginTurn() {
 function endTurn() {
   if (map.turn <= 0) return;
   pushUndo(); advance(); beginTurn();
+}
+
+// Prochain tour jouable ; les héros en danger gardent leur jet contre la mort.
+function nextCombatUnit() {
+  for (let offset = 1; offset <= map.order.length; offset++) {
+    const u = unitById(map.order[(map.active + offset) % map.order.length]);
+    if (u && (!isKO(u) || (unitKind(u) === 'hero' && !u.dead && !u.stable))) return u;
+  }
+  return null;
+}
+
+function renderTurnFocus() {
+  let box = $('turnFocus');
+  if (!box) {
+    box = document.createElement('div'); box.id = 'turnFocus'; box.className = 'turn-focus';
+    document.querySelector('.turn-bar').after(box);
+  }
+  box.replaceChildren(); box.classList.toggle('hidden', map.turn <= 0);
+  if (map.turn <= 0) return;
+  const u = activeUnit(), next = nextCombatUnit();
+  const title = document.createElement('strong');
+  title.textContent = u && !isKO(u) ? `À toi de jouer : ${u.name}` : 'Aucune figurine en état d’agir';
+  box.append(title);
+  if (u && !isKO(u)) {
+    const a = u.act || { action: 1, bonus: 1, reaction: 1, attacks: 0 };
+    const budget = document.createElement('div'); budget.className = 'turn-budget';
+    [['Action', a.action], ['Bonus', a.bonus], ['Réaction', a.reaction]].forEach(([label, n]) => {
+      const chip = document.createElement('span'); chip.className = n > 0 ? 'available' : 'spent';
+      chip.textContent = `${n > 0 ? '●' : '○'} ${label}${n > 0 ? '' : ' utilisée'}`; budget.append(chip);
+    });
+    if (a.attacks > 0) { const chip = document.createElement('span'); chip.textContent = `${a.attacks} attaque(s) restante(s)`; budget.append(chip); }
+    box.append(budget);
+    const move = document.createElement('div'); move.className = 'muted';
+    const used = movementUsed(u), max = unitStats(u).deplacement;
+    const blocked = u.conds.map(condOf).find(c => c?.move0);
+    move.textContent = blocked ? `Déplacement bloqué : ${blocked.name}` : isFinite(used) ? `Déplacement : ${Math.max(0, max - used)} / ${max} cases restantes` : 'Déplacement : hors de la zone autorisée';
+    box.append(move);
+    if (playSel !== u) {
+      const btn = document.createElement('button'); btn.textContent = '↩ Sélectionner le personnage actif';
+      btn.onclick = () => selectUnit(u); box.append(btn);
+    }
+  }
+  const upcoming = document.createElement('div'); upcoming.className = 'muted';
+  upcoming.textContent = next ? `Ensuite : ${next.name}${map.order.indexOf(next.id) <= map.active ? ' · round suivant' : ''}` : 'Tu peux terminer le combat ou soigner une figurine.';
+  box.append(upcoming);
 }
 // Remet tout à zéro : positions de départ, PV pleins, états et statistiques effacés
 function resetCombat(restart) {
@@ -330,6 +378,7 @@ function renderTracker() {
     : [...map.units].sort((a, b) => (unitKind(a) === 'hero' ? 0 : 1) - (unitKind(b) === 'hero' ? 0 : 1));
   if (!units.length) { list.innerHTML = '<p class="muted">Aucune figurine. Choisis un personnage ou un monstre à gauche.</p>'; return; }
   const act = activeUnit();
+  const next = fighting ? nextCombatUnit() : null;
   units.forEach(u => {
     const row = document.createElement('button');
     row.className = 'trow ' + unitKind(u) + (u === playSel ? ' on' : '') + (u === act ? ' active' : '') + (isKO(u) ? ' ko' : '');
@@ -343,6 +392,9 @@ function renderTracker() {
     const f = u.hpMax ? u.hp / u.hpMax : 0;
     bar.innerHTML = `<i style="width:${Math.round(f * 100)}%;background:${hpColor(f)}"></i><span>${u.hp} / ${u.hpMax}</span>`;
     info.append(nm, bar);
+    if (u === next && u !== act) {
+      const label = document.createElement('span'); label.className = 'next-turn'; label.textContent = 'À suivre'; info.append(label);
+    }
     const ca = document.createElement('span'); ca.className = 'tca'; ca.textContent = '🛡' + u.ca;
     if (fighting) row.append(ini);
     row.append(spriteIcon(u.sprite, 26), info, ca);
@@ -415,7 +467,7 @@ function syncCombatUI() {
   $('btnAi').textContent = act ? `🤖 Jouer le tour de ${act.name} (IA)` : '🤖 Jouer ce tour (IA)';
   $('modeBadge').textContent = rulesMode ? '⚖ Règles strictes' : '🎭 Mode MJ';
   $('modeBadge').className = 'mode-badge ' + (rulesMode ? 'rules' : 'gm');
-  renderTracker(); renderLog(); renderSummary();
+  renderTurnFocus(); renderTracker(); renderLog(); renderSummary();
 }
 
 // ---------- Boutons ----------

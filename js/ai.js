@@ -18,6 +18,7 @@ function roleOf(u) {
   if (u.role) return u.role;
   const c = u.cls || SPRITE_CLASS[u.sprite];
   if (ROLES[c]) return ROLES[c];
+  if (SPRITES[u.sprite]?.role) return SPRITES[u.sprite].role;
   return (unitStats(u).attaque || 1) > 1 ? 'tireur' : 'brute';
 }
 

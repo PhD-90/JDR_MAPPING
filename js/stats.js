@@ -235,6 +235,240 @@ type_degats     = perforant
 immunites       = feu
 multiattaque    = 2
 traits          = sans_peur
+
+# ----- Petits monstres (1 case, silhouette compacte) -----
+# Valeurs de jeu ajustables pour ce bestiaire.
+
+[Kobold]
+deplacement = 6
+attaque = 1
+saut = 1
+pv = 5
+ca = 12
+toucher = +4
+degats = 1d4+2
+init = +2
+xp = 25
+carac = 7 15 9 8 7 8
+type_degats = perforant
+traits = meute fuite_agile
+
+[Rat géant]
+deplacement = 6
+attaque = 1
+saut = 1
+nage = oui
+pv = 7
+ca = 12
+toucher = +4
+degats = 1d4+2
+init = +2
+xp = 25
+carac = 7 15 11 2 10 4
+type_degats = perforant
+traits = meute
+
+[Chauve-souris]
+deplacement = 8
+attaque = 1
+saut = 1
+vol = oui
+pv = 4
+ca = 13
+toucher = +3
+degats = 1d4+1
+init = +3
+xp = 10
+carac = 3 16 8 2 12 4
+type_degats = perforant
+traits = fuite_agile
+
+[Diablotin]
+deplacement = 8
+attaque = 4
+saut = 1
+vol = oui
+pv = 13
+ca = 13
+toucher = +5
+degats = 1d6+3
+init = +3
+xp = 100
+carac = 6 17 13 11 12 14
+type_degats = poison
+immunites = feu poison
+resistances = froid
+
+[Scarabée de feu]
+deplacement = 4
+attaque = 1
+saut = 1
+pv = 8
+ca = 14
+toucher = +3
+degats = 1d6+1
+init = +0
+xp = 25
+carac = 8 10 12 1 7 3
+type_degats = feu
+resistances = feu
+
+# ----- Monstres moyens (1 case) -----
+
+[Bandit]
+deplacement = 6
+attaque = 6
+saut = 1
+pv = 11
+ca = 12
+toucher = +3
+degats = 1d6+1
+init = +1
+xp = 25
+carac = 11 12 12 10 10 10
+type_degats = perforant
+
+[Zombie]
+deplacement = 4
+attaque = 1
+saut = 0
+pv = 22
+ca = 8
+toucher = +3
+degats = 1d6+1
+init = -2
+xp = 50
+carac = 13 6 16 3 6 5
+sauvegardes = sag
+type_degats = contondant
+immunites = poison
+traits = sans_peur
+
+[Goule]
+deplacement = 6
+attaque = 1
+saut = 2
+pv = 22
+ca = 12
+toucher = +4
+degats = 2d4+2
+init = +2
+xp = 200
+carac = 13 15 10 7 10 6
+type_degats = tranchant
+immunites = poison
+traits = sans_peur fuite_agile
+
+[Gnoll]
+deplacement = 6
+attaque = 1
+saut = 1
+pv = 22
+ca = 15
+toucher = +4
+degats = 1d8+2
+init = +1
+xp = 100
+carac = 14 12 11 6 10 7
+type_degats = tranchant
+traits = meute agressif
+
+[Homme-lézard]
+deplacement = 6
+attaque = 1
+saut = 1
+nage = oui
+pv = 27
+ca = 15
+toucher = +4
+degats = 1d6+2
+init = +0
+xp = 200
+carac = 15 10 13 7 12 7
+type_degats = perforant
+multiattaque = 2
+
+# ----- Gros monstres (2 x 2 cases ; géant : 3 x 3) -----
+
+[Ogre]
+deplacement = 6
+attaque = 1
+saut = 1
+pv = 59
+ca = 11
+toucher = +6
+degats = 2d8+4
+init = -1
+xp = 450
+carac = 19 8 16 5 7 7
+type_degats = contondant
+traits = agressif
+
+[Troll]
+deplacement = 6
+attaque = 1
+saut = 2
+nage = oui
+pv = 84
+ca = 15
+toucher = +7
+degats = 2d6+4
+init = +1
+xp = 1100
+carac = 18 13 20 7 9 7
+maitrise = 3
+type_degats = tranchant
+multiattaque = 2
+traits = sans_peur
+
+[Minotaure]
+deplacement = 8
+attaque = 1
+saut = 1
+pv = 76
+ca = 14
+toucher = +6
+degats = 2d10+4
+init = +0
+xp = 700
+carac = 18 11 16 6 16 9
+type_degats = tranchant
+traits = agressif renversement
+
+[Golem de pierre]
+deplacement = 4
+attaque = 1
+saut = 1
+pv = 105
+ca = 17
+toucher = +7
+degats = 2d8+5
+init = -1
+xp = 1800
+carac = 20 8 20 3 11 1
+sauvegardes = for con
+maitrise = 3
+type_degats = contondant
+immunites = poison
+multiattaque = 2
+traits = sans_peur
+
+[Géant des collines]
+deplacement = 6
+attaque = 1
+saut = 2
+pv = 115
+ca = 13
+toucher = +8
+degats = 3d8+5
+init = -1
+xp = 1800
+carac = 21 8 19 5 9 6
+sauvegardes = for con
+maitrise = 3
+type_degats = contondant
+multiattaque = 2
+traits = renversement
 `;
 
 let STATS = null, statsSource = '';
@@ -270,7 +504,12 @@ function parseStats(txt) {
   return out;
 }
 
-function loadStats(txt, source) { STATS = parseStats(txt); statsSource = source; invalidateZones(); }
+function loadStats(txt, source) {
+  const defaults = parseStats(DEFAULT_STATS_TXT), loaded = parseStats(txt);
+  // Un ancien fichier personnalisé conserve ses valeurs et reçoit les nouveaux monstres.
+  for (const key of Object.keys(SPRITES)) loaded.units[key] = { ...defaults.units[key], ...loaded.units[key] };
+  STATS = loaded; statsSource = source; invalidateZones();
+}
 
 // Caractéristiques de déplacement effectives d'une figurine
 // (valeurs propres à la figurine > fichier de caractéristiques ; un état « Étourdi » ou « Entravé » bloque le déplacement)

@@ -12,6 +12,6 @@ try {
   const saved = localStorage.getItem('jdr-map');
   if (saved) { const m = JSON.parse(saved); if (m.cols && m.floor) map = normalizeMap(m); }
 } catch (e) {}
-buildPalettes(); buildPlayPalettes(); initChars(); loadWorld(); setTool('object');
+initMapModules(); buildPalettes(); buildPlayPalettes(); initChars(); loadWorld(); setTool('object');
 if (PLAYER_VIEW) { initPlayerView(); setMode('play'); } else setMode('edit');
 fit();

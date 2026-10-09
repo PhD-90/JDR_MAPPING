@@ -14,15 +14,15 @@ const XP_THRESH = { 1:[25,50,75,100], 2:[50,100,150,200], 3:[75,150,225,400], 4:
 const DIFFS = ['Facile', 'Moyenne', 'Difficile', 'Mortelle'];
 const groupMult = n => n <= 1 ? 1 : n === 2 ? 1.5 : n <= 6 ? 2 : n <= 10 ? 2.5 : n <= 14 ? 3 : 4;
 const ENV = {
-  forest:  { name: 'Forêt',     w: { wolf: 3, goblin: 3, orc: 2, slime: 1 } },
-  dungeon: { name: 'Donjon',    w: { skeleton: 3, goblin: 2, slime: 2, orc: 1, dragon: 0.3 } },
-  cave:    { name: 'Grotte',    w: { slime: 3, goblin: 2, orc: 2, skeleton: 1, dragon: 0.3 } },
-  city:    { name: 'Ville',     w: { goblin: 2, orc: 1, skeleton: 1 } },
-  plain:   { name: 'Plaine',    w: { wolf: 2, orc: 2, goblin: 2 } },
-  desert:  { name: 'Désert',    w: { skeleton: 2, slime: 1, orc: 1 } },
-  snow:    { name: 'Neige',     w: { wolf: 3, orc: 1, skeleton: 1 } },
-  swamp:   { name: 'Marais',    w: { slime: 3, skeleton: 2, goblin: 1 } },
-  volcano: { name: 'Volcan',    w: { dragon: 0.6, orc: 2, slime: 1, skeleton: 1 } },
+  forest:  { name: 'Forêt',     w: { wolf:3, goblin:3, orc:2, slime:1, kobold:2, rat:1, bandit:2, gnoll:2, ogre:0.7, troll:0.5 } },
+  dungeon: { name: 'Donjon',    w: { skeleton:3, goblin:2, slime:2, orc:1, dragon:0.3, rat:2, zombie:2, ghoul:1.5, imp:1, minotaur:0.6, stone_golem:0.4 } },
+  cave:    { name: 'Grotte',    w: { slime:3, goblin:2, orc:2, skeleton:1, dragon:0.3, kobold:3, bat:3, fire_beetle:2, ogre:1, troll:0.5 } },
+  city:    { name: 'Ville',     w: { goblin:2, orc:1, skeleton:1, rat:3, bandit:4, zombie:1, imp:0.5, stone_golem:0.2 } },
+  plain:   { name: 'Plaine',    w: { wolf:2, orc:2, goblin:2, bandit:2, gnoll:3, ogre:1, minotaur:0.5, hill_giant:0.4 } },
+  desert:  { name: 'Désert',    w: { skeleton:2, slime:1, orc:1, kobold:2, fire_beetle:2, gnoll:3, minotaur:0.5, stone_golem:0.3 } },
+  snow:    { name: 'Neige',     w: { wolf:3, orc:1, skeleton:1, bandit:1, zombie:1, ogre:1, troll:0.6, hill_giant:0.5 } },
+  swamp:   { name: 'Marais',    w: { slime:3, skeleton:2, goblin:1, rat:2, zombie:2, ghoul:2, lizardfolk:4, troll:1 } },
+  volcano: { name: 'Volcan',    w: { dragon:0.6, orc:2, slime:1, skeleton:1, fire_beetle:3, imp:3, kobold:2, stone_golem:0.5, hill_giant:0.3 } },
 };
 function partyInfo() {
   const heroes = sheets.filter(s => s.camp !== 'monster');
@@ -252,6 +252,11 @@ function out(id, txt) { $(id).textContent = txt; }
 function buildGmTab() {
   const opts = obj => Object.entries(obj).map(([k, v]) => `<option value="${k}">${v.name ?? v}</option>`).join('');
   $('gmMain').innerHTML = `
+    <div class="page-heading">
+      <span class="page-eyebrow">Derrière l’écran</span>
+      <h1>Le cabinet du maître</h1>
+      <p>Rencontres, trésors et secrets pour donner vie à l’aventure.</p>
+    </div>
     <div class="gm-grid">
       <section class="gm-card wide">
         <h3>⚔ Rencontre aléatoire</h3>

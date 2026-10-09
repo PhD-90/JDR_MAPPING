@@ -14,6 +14,21 @@ const ATTACKS = {
   ranger:   { kind:'ranged', fx:'arrow', color:'#ffe9a8', name:'Flèche',             dur:850 },
   slime:    { kind:'ranged', fx:'acid',  color:'#62d26a', name:"Crachat d'acide",    dur:900 },
   dragon:   { kind:'ranged', fx:'fire',  color:'#ff8a2a', name:'Souffle de feu',     dur:1400, shake:5 },
+  kobold:   { kind:'melee',  fx:'stab',  color:'#e4c38d', name:'Pointe de lance',   dur:650 },
+  rat:      { kind:'melee',  fx:'claw',  color:'#dcb49a', name:'Morsure de rat',    dur:600 },
+  bat:      { kind:'melee',  fx:'claw',  color:'#c2a1db', name:'Morsure en piqué',  dur:600 },
+  imp:      { kind:'ranged', fx:'acid',  color:'#b4e565', name:'Dard venimeux',     dur:800 },
+  fire_beetle: { kind:'melee', fx:'smash', color:'#ffb43f', name:'Mandibules brûlantes', dur:750 },
+  bandit:   { kind:'ranged', fx:'arrow', color:'#dbceb7', name:'Flèche de bandit', dur:850 },
+  zombie:   { kind:'melee',  fx:'smash', color:'#9eaf7a', name:'Coup pesant',       dur:1000 },
+  ghoul:    { kind:'melee',  fx:'claw',  color:'#badde4', name:'Griffes de goule',  dur:700 },
+  gnoll:    { kind:'melee',  fx:'chop',  color:'#e1c08c', name:'Hache du gnoll',    dur:850, shake:3 },
+  lizardfolk: { kind:'melee', fx:'stab', color:'#9cd3b2', name:'Lance reptilienne', dur:800 },
+  ogre:     { kind:'melee',  fx:'smash', color:'#ceac7d', name:'Massue de l’ogre', dur:1100, shake:6 },
+  troll:    { kind:'melee',  fx:'claw',  color:'#93c898', name:'Griffes du troll',  dur:950, shake:3 },
+  minotaur: { kind:'melee',  fx:'chop',  color:'#e5c199', name:'Hache du labyrinthe', dur:1050, shake:6 },
+  stone_golem: { kind:'melee', fx:'smash', color:'#8cdbdb', name:'Poing de pierre', dur:1200, shake:8 },
+  hill_giant: { kind:'melee', fx:'smash', color:'#dac394', name:'Massue du géant', dur:1300, shake:10 },
 };
 const DEFAULT_ATTACK = { kind:'melee', fx:'slash', color:'#ffffff', name:'Attaque', dur:750 };
 const attackOf = u => ATTACKS[u.sprite] || DEFAULT_ATTACK;

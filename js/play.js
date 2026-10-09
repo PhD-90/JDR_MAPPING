@@ -9,7 +9,10 @@ let attackMode = false;   // en attente du choix d'une cible
 function setMode(m) {
   mode = m;
   ['play', 'edit', 'chars', 'world', 'gm'].forEach(k => document.body.classList.toggle('mode-' + k, m === k));
-  document.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
+  document.querySelectorAll('[data-mode]').forEach(b => {
+    b.classList.toggle('on', b.dataset.mode === m);
+    b.setAttribute('aria-pressed', String(b.dataset.mode === m));
+  });
   drag = null; select(null); playSel = null; setPending(null); attackMode = false; actionMode = null; $('attackHint').classList.add('hidden');
   updateMapLocTag();
   if (m === 'chars') { renderChars(); return; }
@@ -24,7 +27,9 @@ const pendingSprite = k => k && k.startsWith('sheet:') ? (getSheet(k.slice(6)) |
 
 function addUnit(key, cx, cy) {
   const sheet = key.startsWith('sheet:') ? getSheet(key.slice(6)) : null;
-  const spKey = sheet ? sheet.sprite : key, sp = SPRITES[spKey], s = sp.size;
+  const spKey = sheet ? sheet.sprite : key, sp = SPRITES[spKey];
+  if (!sp || sp.size > map.cols || sp.size > map.rows) return null;
+  const s = sp.size;
   const baseName = sheet ? sheet.name : sp.name;
   const n = map.units.filter(u => (u.baseName || SPRITES[u.sprite].name) === baseName).length;
   const u = { id: map.nextId++, sprite: spKey, baseName, name: baseName + (n ? ' ' + (n + 1) : ''), size: s,
@@ -65,6 +70,7 @@ function selectUnit(u) {
 }
 function setPending(k) {
   pending = k;
+  if (!attackMode && !actionMode) $('attackHint').classList.add('hidden');
   if (k) { fogTool = null; markTool = null; if (typeof syncGmTools === 'function') syncGmTools(); }
   document.querySelectorAll('[data-sprite]').forEach(b => b.classList.toggle('on', b.dataset.sprite === k));
   redraw();
@@ -72,7 +78,7 @@ function setPending(k) {
 
 // Position à l'écran : pieds de la figurine (relief compris) et taille du sprite
 function unitBox(u) {
-  const sw = T * 0.95 * u.size;
+  const sw = T * 0.95 * u.size * (SPRITES[u.sprite]?.drawScale || 1);
   return { cx: (u.x + u.size/2) * T, fy: (u.y + u.size*0.78) * T - unitLevel(u) * LH(), sw };
 }
 function hitUnit(wx, wy) {
@@ -200,6 +206,7 @@ function drawPlayOverlay(c) {
   drawActionTarget(c);
   if (!pending || !hover || drag) return;
   const spk = pendingSprite(pending), s = SPRITES[spk].size;
+  if (s > map.cols || s > map.rows) return;
   drawUnit(c, { sprite: spk, name: '', size: s, x: clamp(hover.cx, 0, map.cols - s), y: clamp(hover.cy, 0, map.rows - s) }, true, true);
 }
 // La flèche et l'anneau du tour en cours sont animés : on redessine en continu en mode Jouer
@@ -230,6 +237,11 @@ function playMouseDown(e, p) {
     return;
   }
   if (pending && inMap(p.cx, p.cy)) {
+    const sp = SPRITES[pendingSprite(pending)];
+    if (sp.size > map.cols || sp.size > map.rows) {
+      $('attackHint').textContent = `${sp.name} a besoin d’une carte d’au moins ${sp.size} × ${sp.size} cases.`;
+      $('attackHint').classList.remove('hidden'); return;
+    }
     pushUndo();
     selectUnit(addUnit(pending, p.cx, p.cy));
     if (!e.shiftKey) setPending(null);
@@ -270,13 +282,34 @@ function playKey(e) {
 
 // ---------- Panneaux ----------
 function buildPlayPalettes() {
+  $('heroPal').replaceChildren(); $('monsterPal').replaceChildren();
   Object.entries(SPRITES).forEach(([k, sp]) => {
     const b = document.createElement('button'); b.className = 'item'; b.dataset.sprite = k;
     b.appendChild(spriteIcon(k, 44)); b.append(sp.name);
+    b.title = `${sp.name} · ${spriteSizeLabel(k)}`;
+    if (sp.kind === 'monster') {
+      b.dataset.size = spriteSizeCategory(k);
+      const badge = document.createElement('small'); badge.className = 'monster-size';
+      badge.textContent = SPRITE_SIZES[b.dataset.size] + (sp.size > 1 ? ` · ${sp.size}×${sp.size}` : '');
+      b.append(badge);
+    }
     b.onclick = () => setPending(pending === k ? null : k);
     $(sp.kind === 'hero' ? 'heroPal' : 'monsterPal').appendChild(b);
   });
+  filterMonsters();
 }
+function filterMonsters() {
+  const query = norm($('monsterSearch').value), size = $('monsterSize').value;
+  let count = 0;
+  document.querySelectorAll('#monsterPal [data-sprite]').forEach(b => {
+    const show = (!size || b.dataset.size === size) && norm(SPRITES[b.dataset.sprite].name).includes(query);
+    b.classList.toggle('hidden', !show);
+    if (show) count++; else if (pending === b.dataset.sprite) setPending(null);
+  });
+  $('monsterEmpty').classList.toggle('hidden', count > 0);
+}
+$('monsterSearch').oninput = filterMonsters;
+$('monsterSize').onchange = filterMonsters;
 // Fiches de l'onglet « Personnages », à poser sur la carte
 function renderSheetPal() {
   const pal = $('sheetPal'); pal.replaceChildren();
