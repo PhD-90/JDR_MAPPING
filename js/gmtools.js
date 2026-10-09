@@ -145,23 +145,15 @@ function genNPC() {
 }
 
 // ---------- Trésors ----------
-const LOOT = [
-  { t: 0, items: ['une potion de soins (2d4+2 PV)', 'une corde en soie de 15 m', 'une gemme bleue (10 po)', 'un parchemin de *Sommeil*', 'une dague ouvragée (25 po)',
-                  'une fiole d\'huile de feu', 'une carte au trésor déchirée', 'un anneau en argent (15 po)', 'une bourse de dés truqués'] },
-  { t: 1, items: ['une potion de soins majeure (4d4+4 PV)', 'une épée +1', 'une cape de protection (+1 CA)', 'un sac sans fond', 'une baguette de projectiles magiques',
-                  'des bottes elfiques', 'une statuette de jade (250 po)', 'un parchemin de *Boule de feu*', 'un bouclier +1'] },
-  { t: 2, items: ['une potion de soins supérieure (8d4+8 PV)', 'une arme +2', 'un anneau de résistance', 'une baguette de foudre', 'une couronne sertie (2 500 po)',
-                  'un manteau de déplacement', 'un tapis volant', 'une armure +1'] },
-  { t: 3, items: ['une arme +3', 'une potion de soins suprême (10d4+20 PV)', 'un bâton de pouvoir', 'une ceinture de force de géant', 'un sceptre royal (7 500 po)', 'un anneau de régénération'] },
-];
 function genTreasure(lvl) {
   const tier = lvl <= 4 ? 0 : lvl <= 10 ? 1 : lvl <= 16 ? 2 : 3;
   const gold = rollDice(['4d6', '2d6x10', '4d6x10', '6d6x100'][tier].replace(/x(\d+)/, '')).total * [1, 10, 10, 100][tier];
   const silver = rollDice('3d6').total * [10, 10, 0, 0][tier];
   const n = rollDie(3) - (Math.random() < 0.3 ? 1 : 0);
-  const items = [], pool = [...LOOT[tier].items, ...(tier ? LOOT[tier - 1].items : [])];
-  for (let i = 0; i < n; i++) { const it = pickR(pool); if (!items.includes(it)) items.push(it); }
-  return { gold, silver, items, tier, text: `💰 ${gold} po${silver ? ` et ${silver} pa` : ''}` + (items.length ? `\n🎁 ${items.join('\n🎁 ')}` : '') };
+  const gearKeys=[],pool=Object.keys(GEAR).filter(k=>Object.keys(GEAR_RARITY).indexOf(GEAR[k].rarity)<=tier && (tier>0||GEAR[k].price<=50));
+  for(let i=0;i<n;i++){const key=pickR(pool);if(!gearKeys.includes(key))gearKeys.push(key);}
+  const items=gearKeys.map(k=>GEAR[k].name);
+  return { gold, silver, items, gearKeys, tier, text: `💰 ${gold} po${silver ? ` et ${silver} pa` : ''}` + (items.length ? `\n🎁 ${items.join('\n🎁 ')}` : '') };
 }
 
 // ---------- Quêtes, rumeurs, tavernes, météo ----------
@@ -227,6 +219,7 @@ function genWeather(clim, season) {
 function addHistory(title, text) {
   gmHistory.unshift({ title, text, at: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) });
   gmHistory = gmHistory.slice(0, 30);
+  saveGmHistory();
   renderHistory();
 }
 function renderHistory() {
@@ -249,6 +242,7 @@ function saveNotes() { try { localStorage.setItem('jdr-notes', $('gmNotes').valu
 
 function out(id, txt) { $(id).textContent = txt; }
 
+let lastLoot = null;
 function buildGmTab() {
   const opts = obj => Object.entries(obj).map(([k, v]) => `<option value="${k}">${v.name ?? v}</option>`).join('');
   $('gmMain').innerHTML = `
@@ -257,7 +251,12 @@ function buildGmTab() {
       <h1>Le cabinet du maître</h1>
       <p>Rencontres, trésors et secrets pour donner vie à l’aventure.</p>
     </div>
-    <div class="gm-grid">
+    <nav class="gm-nav" aria-label="Outils du maître">
+      <button data-gm-section="generators">🎲 Générateurs</button>
+      <button data-gm-section="notebook">📖 Carnet de campagne</button>
+    </nav>
+    <div id="gmNotebook" class="hidden"></div>
+    <div id="gmGenerators"><div class="gm-grid">
       <section class="gm-card wide">
         <h3>⚔ Rencontre aléatoire</h3>
         <p class="muted">Équilibrée selon le groupe (seuils d'XP du Guide du maître) et le terrain.</p>
@@ -270,15 +269,18 @@ function buildGmTab() {
         <div class="row"><button id="encGen" class="primary">🎲 Générer</button>
           <button id="encPlace" disabled>➕ Poser sur la carte de combat</button>
           <button id="encTest" disabled title="Joue la rencontre 100 fois sans affichage">🧪 Tester (simulation)</button>
+          <button id="encRemember" disabled>📖 Enregistrer la rencontre</button>
           <label class="inline">🙈 Cachée (embuscade) <input id="encHidden" type="checkbox"></label></div>
         <div id="encOut" class="gm-out"></div>
       </section>
       <section class="gm-card"><h3>🧑 PNJ</h3>
         <div class="row"><button id="npcGen" class="primary">🎲 Générer un PNJ</button><button id="npcSheet" disabled>📜 Créer sa fiche</button></div>
+        <button id="npcRemember" disabled>📖 Conserver dans le carnet</button>
         <pre id="npcOut" class="gm-out"></pre></section>
       <section class="gm-card"><h3>💰 Trésor</h3>
         <label>Niveau du groupe <input id="lootLvl" type="number" min="1" max="20"></label>
         <div class="row"><button id="lootGen" class="primary">🎲 Générer</button><button id="lootShare" disabled>➗ Partager l'or entre les personnages</button></div>
+        <button id="lootStore" disabled>🎒 Déposer les objets au coffre commun</button>
         <pre id="lootOut" class="gm-out"></pre></section>
       <section class="gm-card"><h3>📜 Accroche de quête</h3>
         <div class="row"><button id="questGen" class="primary">🎲 Générer</button><button id="questAdd" disabled>📌 Ajouter aux quêtes</button></div>
@@ -302,16 +304,19 @@ function buildGmTab() {
         <button id="wxGen" class="primary">🎲 Générer</button><pre id="wxOut" class="gm-out"></pre></section>
     </div>
     <h3 class="gm-h">Historique</h3>
-    <div id="gmHistory"></div>`;
+    <div id="gmHistory"></div></div>`;
+  document.querySelectorAll('[data-gm-section]').forEach(b=>b.onclick=()=>showGmSection(b.dataset.gmSection));
+  showGmSection(gmSection);
 
-  let lastEnc = null, lastNpc = null, lastLoot = null;
+  let lastEnc = null, lastNpc = null;
   $('encGen').onclick = () => {
     lastEnc = genEncounter($('encEnv').value, +$('encDiff').value, clamp(+$('encN').value || 4, 1, 10), clamp(+$('encLvl').value || 1, 1, 20));
     const txt = `${encText(lastEnc)}\nXP : ${lastEnc.raw} (ajustée ${lastEnc.adj} pour un objectif de ${lastEnc.target})\n${ENV[lastEnc.env].name} · difficulté ${DIFFS[lastEnc.diff].toLowerCase()} · ${lastEnc.n} personnage(s) niv. ${lastEnc.lvl}`;
-    out('encOut', txt); $('encPlace').disabled = false; $('encTest').disabled = false; addHistory('⚔ Rencontre', txt);
+    out('encOut', txt); $('encPlace').disabled = false; $('encTest').disabled = false; $('encRemember').disabled=false; addHistory('⚔ Rencontre', txt);
   };
   $('encPlace').onclick = () => { if (lastEnc) placeEncounter(lastEnc, $('encHidden').checked); };
   $('encTest').onclick = () => { if (lastEnc) openSim(encounterTestMap(lastEnc), `Tester la rencontre : ${encText(lastEnc)}`); };
+  $('encRemember').onclick = () => { if(!lastEnc)return;rememberEncounter(lastEnc,$('encHidden').checked);$('encRemember').disabled=true; };
   let lastQuest = null;
   $('questAdd').onclick = () => { if (!lastQuest) return; addQuest(lastQuest); $('questAdd').disabled = true; out('questOut', lastQuest.text + '\n✔ Ajoutée au journal de quêtes (onglet Monde).'); };
   $('chkRoll').onclick = () => {
@@ -322,16 +327,19 @@ function buildGmTab() {
       `\n→ ${g.ok ? 'Réussite' : 'Échec'} du groupe (${g.res.filter(r => r.ok).length}/${g.res.length}) — ${skillOf(k).name} DD ${dd}`;
     out('chkOut', txt); addHistory(`🎯 ${skillOf(k).name} DD ${dd}`, txt); sfx('dice');
   };
-  $('npcGen').onclick = () => { lastNpc = genNPC(); out('npcOut', lastNpc.text); $('npcSheet').disabled = false; addHistory('🧑 PNJ', lastNpc.text); };
+  $('npcGen').onclick = () => { lastNpc = genNPC(); out('npcOut', lastNpc.text); $('npcSheet').disabled = false; $('npcRemember').disabled=false; addHistory('🧑 PNJ', lastNpc.text); };
+  $('npcRemember').onclick = () => { if(!lastNpc)return;rememberNpc(lastNpc);$('npcRemember').disabled=true; };
   $('npcSheet').onclick = () => {
     if (!lastNpc) return;
     const s = newSheet(); Object.assign(s, { name: lastNpc.name, race: lastNpc.race, camp: 'monster', cls: pickR(Object.keys(CLASSES)), notes: lastNpc.text, method: 'standard' });
     s.sprite = CLASSES[s.cls].sprite; s.weapon = CLASSES[s.cls].arme; assignByPriority(s, STANDARD_ARRAY);
     sheets.push(s); saveSheets(); setMode('chars'); openSheet(s.id);
   };
-  $('lootGen').onclick = () => { lastLoot = genTreasure(clamp(+$('lootLvl').value || 1, 1, 20)); out('lootOut', lastLoot.text); $('lootShare').disabled = false; addHistory('💰 Trésor', lastLoot.text); };
+  $('lootGen').onclick = () => { lastLoot = genTreasure(clamp(+$('lootLvl').value || 1, 1, 20)); out('lootOut', lastLoot.text); $('lootShare').disabled = false; $('lootStore').disabled=false; addHistory('💰 Trésor', lastLoot.text); };
+  $('lootStore').onclick=()=>{if(!lastLoot||lastLoot.stored)return;pushUndo();storeLoot(lastLoot);$('lootStore').disabled=true;out('lootOut',lastLoot.text+'\n✔ Objets déposés au coffre commun.');};
   $('lootShare').onclick = () => {
-    const heroes = sheets.filter(s => s.camp !== 'monster'); if (!lastLoot || !heroes.length) return;
+    const heroes = sheets.filter(s => s.camp !== 'monster'); if (!lastLoot || !heroes.length || lastLoot.shared) return;
+    pushUndo();lastLoot.shared=true;
     const share = Math.floor(lastLoot.gold / heroes.length);
     heroes.forEach(s => { s.gold = (s.gold || 0) + share; }); saveSheets();
     $('lootShare').disabled = true; out('lootOut', lastLoot.text + `\n✔ ${share} po ajoutées à chaque personnage (${heroes.map(s => s.name).join(', ')}).`);
@@ -385,4 +393,5 @@ function enterGm() {
     const pp = document.createElement('span'); pp.className = 'muted'; pp.textContent = `👁 ${passivePerception(s)}`; pp.title = 'Perception passive'; l.append(pp);
     who.appendChild(l);
   });
+  showGmSection(gmSection);
 }

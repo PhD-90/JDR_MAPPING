@@ -31,7 +31,9 @@ function initChars() {
     sheets = raw ? JSON.parse(raw) : exampleSheets();
     if (!raw) saveSheets();
   } catch (e) { sheets = exampleSheets(); }
-  sheets.forEach(s => { s.over ||= {}; s.base ||= newSheet().base; s.items ||= { potion: 1, ration: 5, torche: 2 }; });
+  sheets.forEach(s => { s.over ||= {}; s.base ||= newSheet().base; s.items ||= { potion: 1, ration: 5, torche: 2 }; ensureEquipment(s); });
+  saveSheets();
+  reconcileEquipmentMap();
   renderSheetPal();
 }
 
@@ -144,13 +146,12 @@ function buildSheetForm() {
     <h3>Compétences <span class="muted">cochées = maîtrisées · perception passive <b id="shPP"></b></span></h3>
     <div id="shSkills" class="sh-skills"></div>
 
-    <h3>Objets <span class="muted">utilisables en combat, achetés au marché des villes (onglet Monde)</span></h3>
-    <div id="shItems" class="sh-items"></div>
+    <section id="equipmentPanel" aria-label="Équipement et inventaire"></section>
 
-    <h3>Équipement et notes</h3>
-    <label class="wide">Arme / attaque principale <input id="shWeapon" type="text"></label>
+    <h3>Notes de personnage</h3>
+    <label class="wide">Surnom de l’arme / ancienne attaque <input id="shWeapon" type="text"></label>
     <div class="two-col">
-      <div><div class="muted">🎒 Inventaire</div><textarea id="shInv" rows="5" placeholder="Corde (15 m), torches, potion de soins x2..."></textarea></div>
+      <div><div class="muted">🎒 Notes d’inventaire (texte libre conservé)</div><textarea id="shInv" rows="5" placeholder="Souvenirs, objets narratifs, anciens équipements..."></textarea></div>
       <div><div class="muted">📝 Notes</div><textarea id="shNotes" rows="5" placeholder="Historique, sorts, traits, liens..."></textarea></div>
     </div>
 
@@ -178,6 +179,9 @@ function buildSheetForm() {
     if (s.sprite === old.sprite) s.sprite = CLASSES[e.target.value].sprite;   // suit la classe si on ne l'a pas changée
     if (!s.weapon || s.weapon === old.arme) s.weapon = CLASSES[e.target.value].arme;
     s.cls = e.target.value;
+    if(s.gearAuto && s.gear?.length === (GEAR_START[Object.keys(CLASSES).find(k=>CLASSES[k]===old)]||[]).length) {
+      delete s.gear;delete s.equipment;ensureEquipment(s);
+    }
   }));
   on('shLevel', 'input', e => edit(s => { s.level = clamp(Math.floor(+e.target.value || 1), 1, 20); }, false));
   on('shWeapon', 'input', e => edit(s => { s.weapon = e.target.value; }, false));
@@ -197,8 +201,13 @@ function buildSheetForm() {
     $('shRestOut').textContent = `⬆ Niveau ${s.level} : +${gain} PV max` + (fresh.length || extra.length ? ` · Nouveau : ${[...fresh, ...extra].join(', ')}` : '');
     sfx('levelup');
   }));
-  on('shRest', 'click', () => edit(s => { longRest(s); $('shRestOut').textContent = `🛏 ${s.name} récupère ses PV, ses capacités et des dés de vie.`; }));
-  on('shShort', 'click', () => edit(s => { $('shRestOut').textContent = '☕ ' + shortRest(s); }));
+  const restSheet=kind=>{
+    if(map.turn>0||curSheet.dead){$('shRestOut').textContent=curSheet.dead?'Ce personnage est décédé.':'Termine le combat avant de prendre un repos.';return;}
+    pushUndo();edit(s=>{if(kind==='long'){longRest(s);$('shRestOut').textContent=`🛏 ${s.name} récupère ses PV, ses capacités et des dés de vie.`;}else $('shRestOut').textContent='☕ '+shortRest(s);});
+    changed();syncPlayUI();
+  };
+  on('shRest', 'click', () => restSheet('long'));
+  on('shShort', 'click', () => restSheet('short'));
 
   // caractéristiques : boutons − / +
   $('shAbilities').addEventListener('click', e => {
@@ -246,6 +255,7 @@ function buildSheetForm() {
   });
   on('shDup', 'click', () => {
     const c = JSON.parse(JSON.stringify(curSheet)); c.id = newSheet().id; c.name += ' (copie)';
+    rekeyEquipment(c);
     sheets.splice(sheets.indexOf(curSheet) + 1, 0, c); saveSheets(); openSheet(c.id);
   });
   on('shDel', 'click', () => {
@@ -300,17 +310,7 @@ function fillSheetForm(full = true) {
     sk.appendChild(l);
   });
   $('shPP').textContent = passivePerception(s);
-  // objets
-  const it = $('shItems'); it.replaceChildren();
-  Object.entries(ITEMS).forEach(([k, I]) => {
-    const n = (s.items || {})[k] || 0, row = document.createElement('div'); row.className = 'sh-item' + (n ? ' on' : '');
-    const minus = Object.assign(document.createElement('button'), { className: 'mini', textContent: '−' });
-    const plus = Object.assign(document.createElement('button'), { className: 'mini', textContent: '+' });
-    minus.onclick = () => edit(x => { x.items ||= {}; x.items[k] = Math.max(0, (x.items[k] || 0) - 1); });
-    plus.onclick = () => edit(x => { x.items ||= {}; x.items[k] = (x.items[k] || 0) + 1; });
-    row.title = I.desc; row.append(`${I.icon} ${I.name}`, minus, Object.assign(document.createElement('b'), { textContent: n }), plus);
-    it.appendChild(row);
-  });
+  renderEquipment(s);
   $('shDesc').textContent = `${d.race.desc} ${d.cls.desc} Dé de vie d${d.cls.de}, attaque sur ${d.cls.atk.toUpperCase()}.`;
   const pc = $('shPortrait').getContext('2d'); pc.clearRect(0, 0, 16, 16); pc.drawImage(spriteCanvas(s.sprite), 0, 0);
   document.querySelectorAll('#shSprites button').forEach(b => b.classList.toggle('on', b.dataset.spr === s.sprite));
@@ -341,7 +341,7 @@ function fillSheetForm(full = true) {
     if (dd.k === 'degats') inp.classList.toggle('invalid', !validDice(d.val.degats));
   });
   $('shProf').textContent = fmtMod(d.prof);
-  $('shArmor').textContent = `Armure : ${d.cls.armure}. Arme de classe : ${d.cls.arme} (${d.cls.degats}${d.cls.spell ? ', sort' : ''}).`;
+  $('shArmor').textContent = d.equipment.explanation;
   const n = map.units.filter(u => u.sheetId === s.id).length;
   $('shSync').disabled = !n;
   $('shSync').textContent = `↻ Mettre à jour les figurines sur la carte (${n})`;
@@ -363,7 +363,7 @@ $('sheetsIn').onchange = async e => {
   try {
     const list = JSON.parse(await f.text());
     if (!Array.isArray(list)) throw 0;
-    list.forEach(s => { if (!s.base || !s.cls) throw 0; s.over ||= {}; if (getSheet(s.id)) s.id = newSheet().id; sheets.push(s); });
+    list.forEach(s => { if (!s.base || !s.cls) throw 0; s.over ||= {}; if (getSheet(s.id)) s.id = newSheet().id; rekeyEquipment(s); sheets.push(s); });
     saveSheets(); openSheet(list[0]?.id);
   } catch { alert('Fichier de personnages invalide'); }
   e.target.value = '';

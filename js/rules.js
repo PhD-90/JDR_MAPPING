@@ -110,7 +110,7 @@ function newSheet() {
   return { id: 's' + Date.now().toString(36) + Math.floor(Math.random() * 1e4), name: 'Nouveau héros', camp: 'hero',
            sprite: 'warrior', level: 1, race: 'humain', cls: 'guerrier', method: 'points',
            base: { for: 15, dex: 13, con: 14, int: 8, sag: 12, cha: 10 }, weapon: '', notes: '', over: {},
-           xp: 0, gold: 10, hpCur: null, inventory: '', items: { potion: 1, ration: 5, torche: 2 }, skills: null, uses: null, hd: null };
+           xp: 0, gold: 10, hpCur: null, inventory: '', items: { potion: 1, ration: 5, torche: 2 }, skills: null, uses: null, hd: null, gearAuto:true };
 }
 
 // Valeurs calculées d'une fiche ; « over » contient les valeurs modifiées à la main
@@ -125,9 +125,12 @@ function sheetDerived(s) {
     degats: cls.degats + (cls.spell || am === 0 ? '' : fmtMod(am)),
     deplacement: race.depl, portee: cls.portee, saut: cls.saut ?? 1, nage: !!cls.nage, vol: false,
   };
+  const equipment = equipmentDerived(s, mod, score, prof, cls);
+  Object.assign(calc, {ca:equipment.ca,toucher:equipment.toucher,degats:equipment.degats,portee:equipment.portee,
+    deplacement:Math.max(1,calc.deplacement+equipment.move),saut:calc.saut+equipment.climb});
   const val = { ...calc };
   for (const [k, v] of Object.entries(s.over || {})) if (v !== '' && v !== undefined && v !== null) val[k] = v;
-  return { race, cls, lvl, score, mod, prof, calc, val };
+  return { race, cls, lvl, score, mod, prof, calc, val, equipment };
 }
 
 // Coût en points de la répartition (null si une valeur sort de 8..15)

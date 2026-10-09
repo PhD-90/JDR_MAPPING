@@ -56,6 +56,8 @@ function applySheet(u, sheet) {
   u.xp = sheet.camp === 'monster' ? (sheet.xp || 50 * sheet.level) : 0;
   if (u.hp === undefined) u.hp = clamp(sheet.hpCur ?? u.hpMax, 0, u.hpMax);
   if (u.hp > u.hpMax) u.hp = u.hpMax;
+  applyEquipmentToUnit(u, sheet, dd);
+  u.spellToucher=dd.prof+dd.mod[dd.cls.prio[0]];
 }
 function removeUnit(u) {
   if (map.turn > 0) leaveCombat(u);
@@ -332,6 +334,7 @@ function syncPlayUI() {
     $('unitHead').replaceChildren(spriteIcon(u.sprite, 56));
     if (document.activeElement !== $('unitName')) $('unitName').value = u.name;
     syncCombatPanel(u);
+    renderCombatEquipment(u);
     const lvl = unitLevel(u);
     $('unitLvl').textContent = lvl > 0
       ? `${fmtLevel(lvl)} niveau${lvl > 1 ? 'x' : ''} (≈ ${fmtLevel(lvl * METERS_PER_LEVEL)} m)` : 'Au sol';
@@ -402,6 +405,7 @@ function syncPlayUI() {
   syncGmTools(); updatePlayerBanner();
   document.querySelectorAll('[data-zone]').forEach(b => b.classList.toggle('on', b.dataset.zone === zoneMode));
   syncCombatUI();
+  renderEncounterTray();
 }
 
 $('unitName').addEventListener('focus', pushUndo);
@@ -409,7 +413,7 @@ $('unitName').addEventListener('input', e => { if (playSel) { playSel.name = e.t
 $('btnUnitDel').onclick = () => { if (playSel) { pushUndo(); removeUnit(playSel); changed(); } };
 $('btnClearUnits').onclick = () => {
   if (!map.units.length || !confirm('Retirer toutes les figurines de la carte ?')) return;
-  pushUndo(); map.units = []; map.order = []; map.active = 0; map.turn = 0; playSel = null; syncPlayUI(); changed();
+  pushUndo(); map.units = []; delete map.encounterPlans; map.order = []; map.active = 0; map.turn = 0; playSel = null; syncPlayUI(); changed();
 };
 $('uSheet').onclick = () => { const u = playSel; if (u && u.sheetId) { setMode('chars'); openSheet(u.sheetId); } };
 

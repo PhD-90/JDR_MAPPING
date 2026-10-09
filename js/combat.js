@@ -172,6 +172,8 @@ function endCombat() {
   pushUndo();
   const heroes = map.units.filter(u => unitKind(u) === 'hero');
   const beaten = map.units.filter(u => unitKind(u) === 'monster' && isKO(u));
+  if(beaten.length){const key=beaten.map(u=>u.id).sort((a,b)=>a-b).join(',');map.rewardedEncounters||=[];
+    if(!map.rewardedEncounters.includes(key)){map.rewardedEncounters.push(key);map.combatLoot=genTreasure(Math.max(1,Math.round(heroes.reduce((n,u)=>n+(u.lvl||1),0)/Math.max(1,heroes.length))));}}
   const total = beaten.reduce((s, u) => s + (u.xp || 0), 0), share = heroes.length ? Math.floor(total / heroes.length) : 0;
   addLog(`🏁 Fin du combat après ${map.turn} round${map.turn > 1 ? 's' : ''} : ${beaten.length} ennemi${beaten.length > 1 ? 's' : ''} vaincu${beaten.length > 1 ? 's' : ''}, ${total} XP` +
          (heroes.length ? `, soit ${share} XP par personnage.` : '.'), 'win');
@@ -179,7 +181,7 @@ function endCombat() {
     if (share) popText(u, `+${share} XP`, '#ffd23a', 16);
     const s = u.sheetId && getSheet(u.sheetId); if (!s) return;
     s.hpCur = u.hp; s.xp = (s.xp || 0) + share;
-    s.uses = { ...(u.uses || {}) }; if (u.items) s.items = { ...u.items };
+    s.uses = { ...(u.uses || {}) }; if (u.items && !u.equipmentVersion) s.items = { ...u.items };
     if (u.dead) { s.dead = true; addLog(`⚰ La fiche de ${s.name} est marquée comme morte.`, 'ko'); }
     if (canLevelUp(s)) { addLog(`⬆ ${s.name} peut passer au niveau ${s.level + 1} (onglet Personnages) !`, 'win'); later(() => sfx('levelup'), 900); }
   });
@@ -209,6 +211,7 @@ function attackMods(a, t, melee) {
   if (has(a, 'poison')) { adv--; why.push('empoisonné'); }
   if (has(a, 'effraye')) { adv--; why.push('effrayé'); }
   if (has(a, 'aterre')) { adv--; why.push('à terre'); }
+  if (a.gearCombat?.attackDisadvantage) {adv--;why.push('armure ou bouclier non maîtrisé');}
   if (has(a, 'invisible')) { adv++; why.push('invisible'); }
   if (has(t, 'invisible')) { adv--; why.push('cible invisible'); }
   if (has(t, 'aveugle') || has(t, 'etourdi') || has(t, 'entrave')) { adv++; why.push('cible vulnérable'); }
@@ -222,18 +225,20 @@ function attackMods(a, t, melee) {
 // (doublés sur un 20 naturel ou contre une cible inconsciente au corps à corps ; +2 en rage)
 // opt : name, bonusDice, noUndo, reaction (attaque d'opportunité), free (action déjà dépensée), force (pas d'avertissement de portée)
 function attack(a, t, opt = {}) {
-  if (!opt.reaction && !opt.free && !useAttack(a)) return;
+  const refusal=gearAttackReady(a); if(refusal){popText(a,refusal,'#ff9a8a',13);return false;}
   if (!opt.noUndo) pushUndo();
+  if (!opt.reaction && !opt.free && !(a.gearCombat?.off ? spend(a,'bonus') : useAttack(a))) return false;
   const st = attackOf(a), name = opt.name || st.name;
   const melee = (unitStats(a).attaque || 1) <= 1, reach = opt.force || canHitNow(a, t);
   const where = reach ? '' : melee ? ' (hors de portée)' : ' (hors de portée ou sans ligne de vue)';
   const cover = melee ? { bonus: 0 } : coverBonus(a, t), ca = (t.ca ?? 10) + cover.bonus, type = opt.dmgType || a.dmgType;
+  consumeAttackResource(a);
   if (a.hidden) { a.hidden = false; addLog(`🙈 ${a.name} sort de sa cachette !`, 'cond'); }
   sfx('swing');
   if (!autoRoll) {
     startAttack(a, t, null); broadcast({ type: 'attack', a: a.id, t: t.id, res: null });
     addLog(`⚔ ${a.name} → ${t.name} : ${name}${where}`, 'atk');
-    changed(); syncPlayUI(); return;
+    finishThrownAttack(a); changed(); syncPlayUI(); return;
   }
   const m = attackMods(a, t, melee), r1 = rollDie(20), r2 = rollDie(20);
   const d20 = m.adv > 0 ? Math.max(r1, r2) : m.adv < 0 ? Math.min(r1, r2) : r1;
@@ -267,6 +272,7 @@ function attack(a, t, opt = {}) {
       }
     } else { sfx('miss'); popText(t, d20 === 1 ? 'Échec critique !' : 'Raté !', '#c8ccd4'); }
   }, st.dur * hitTime({ st }));
+  finishThrownAttack(a);
   changed(); syncPlayUI();
 }
 
@@ -290,6 +296,7 @@ function applyDamage(t, n, src = null, crit = false, type = '') {
   }
   const was = t.hp;
   t.hp = Math.max(0, t.hp - n);
+  wearEquipment(t,['armor',...(gearDef(gearSlotItem(t,'off'))?.kind==='shield'?['off']:[])]);
   t.track.taken += was - t.hp;
   if (src && map.units.includes(src)) src.track.dealt += was - t.hp;
   popText(t, (crit ? 'CRITIQUE  −' : '−') + n, crit ? '#ffcf3a' : '#ff5a4a', crit ? 22 : 18);
@@ -453,6 +460,7 @@ function syncCombatPanel(u) {
 }
 
 function syncCombatUI() {
+  renderCombatLoot();
   const fighting = map.turn > 0, act = activeUnit();
   $('turnLabel').innerHTML = fighting ? `Round <b>${map.turn}</b>` : '<b>Préparation</b>';
   $('turnWho').textContent = fighting && act ? `Tour de ${act.name}` : fighting ? '' : 'Place les figurines puis lance le combat';

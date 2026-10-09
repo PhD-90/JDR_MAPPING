@@ -33,6 +33,7 @@ function aiTurn(u) {
   const friends = () => map.units.filter(o => unitKind(o) === unitKind(u));
   if (!foes().length) { addLog(`🤖 ${u.name} n'a personne à affronter.`, 'info'); return 0; }
   pushUndo();
+  prepareAiEquipment(u);
   invalidateZones();
   const role = roleOf(u), acts = unitActions(u).filter(k => usesLeft(u, k) > 0);
   let t = 0;   // horloge des gestes (ms)

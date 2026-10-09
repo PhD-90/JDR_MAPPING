@@ -1,0 +1,16 @@
+#expeditionDialog{width:min(900px,calc(100vw - 32px));max-height:calc(100dvh - 40px);box-sizing:border-box;padding:22px;color:#eadbbe;background:linear-gradient(135deg,#2d211b,#191514);border:1px solid #b18a4e;border-radius:12px;box-shadow:0 22px 80px #000a;overflow:auto}
+#expeditionDialog::backdrop{background:#0b090bdd;backdrop-filter:blur(3px)}
+#expeditionDialog h2,#expeditionDialog h3{font-family:Georgia,serif;color:#efd2a0;margin:0 0 12px}
+#expeditionDialog .modal-head{margin-bottom:16px;gap:15px}
+.expedition-settings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;border-bottom:1px solid #795936;padding-bottom:14px}
+.expedition-settings label{display:flex;flex-direction:column;align-items:flex-start;gap:8px;font-size:13px}
+.expedition-roster{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0}
+.expedition-member{padding:14px;background:#ffffff05;border:1px solid #785833;border-radius:8px;min-width:0}
+.expedition-member label{display:flex;align-items:center;gap:8px;justify-content:space-between}.expedition-member strong{overflow-wrap:anywhere;flex:1}
+.expedition-health{display:flex;gap:8px;align-items:center;margin-top:12px;font-size:12px}.expedition-health progress{width:100%;min-width:0;accent-color:#91ab69}.expedition-health span{white-space:nowrap}
+#expeditionDialog input[type=number]{width:70px}#expeditionDialog select{max-width:100%}
+.expedition-supply,.expedition-rest{padding:16px 0;border-top:1px solid #795936}.expedition-supply>label{display:flex;gap:12px;align-items:center}
+#expeditionStatus{color:#f4d491;line-height:1.5}#expeditionDialog .muted{line-height:1.5}
+@media(max-width:900px){.expedition-roster{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.expedition-settings{grid-template-columns:1fr}.expedition-settings label{flex-direction:row;align-items:center;justify-content:space-between}}
+@media(max-width:460px){.expedition-roster{grid-template-columns:1fr}#expeditionDialog{padding:14px}.expedition-rest .row{flex-wrap:wrap}}

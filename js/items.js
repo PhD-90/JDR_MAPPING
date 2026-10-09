@@ -17,11 +17,12 @@ const usableItems = u => Object.keys(u.items || {}).filter(k => itemCount(u, k) 
 
 // Utilise un objet en combat ; un parchemin passe par le ciblage de son sort
 function useItem(u, k) {
+  if(enforce()&&map.turn>0&&activeUnit()!==u)return false;
   const it = ITEMS[k]; if (!it || itemCount(u, k) <= 0 || isKO(u)) return false;
   if (it.spell) { useAction(u, it.spell, k); return true; }
-  if (!spend(u, it.cost || 'bonus')) return false;
   pushUndo();
-  u.items[k]--;
+  if (map.turn>0 && !spend(u, it.cost || 'bonus')) return false;
+  consumeUnitItem(u,k);
   if (it.heal) {
     const r = rollDice(it.heal);
     addLog(`${it.icon} ${u.name} boit ${it.name.toLowerCase()} ${r.detail}`, 'heal'); sfx('heal');

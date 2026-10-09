@@ -23,16 +23,17 @@ function skillBonus(who, k) {
   const sk = skillOf(k); if (!sk) return 0;
   if (who.base) {   // fiche
     const d = sheetDerived(who), skills = who.skills || CLASS_SKILLS[who.cls] || [];
-    return d.mod[sk.ab] + (skills.includes(k) ? d.prof : 0);
+    return d.mod[sk.ab] + (skills.includes(k) ? d.prof : 0) + (d.equipment.skills[k]||0);
   }
-  return abMod(who, sk.ab) + ((who.skills || []).includes(k) ? (who.prof || 2) : 0);
+  return abMod(who, sk.ab) + ((who.skills || []).includes(k) ? (who.prof || 2) : 0) + (who.skillGear?.[k]||0);
 }
 const passivePerception = who => 10 + skillBonus(who, 'perception');
 
 // Test de compétence d'un groupe : chacun lance d20 + bonus ; réussite du groupe si au moins la moitié réussit
 function groupCheck(list, k, dd, adv = 0) {
   const res = list.map(who => {
-    const a = rollDie(20), b = rollDie(20), d = adv > 0 ? Math.max(a, b) : adv < 0 ? Math.min(a, b) : a, bonus = skillBonus(who, k);
+    const noisy=k==='discretion'&&(who.base?sheetDerived(who).equipment.stealth:who.stealthGear), advantage=Math.sign(adv-(noisy?1:0));
+    const a = rollDie(20), b = rollDie(20), d = advantage > 0 ? Math.max(a, b) : advantage < 0 ? Math.min(a, b) : a, bonus = skillBonus(who, k);
     return { who, d, a, b, bonus, tot: d + bonus, ok: d + bonus >= dd };
   });
   return { res, ok: res.filter(r => r.ok).length * 2 >= res.length };

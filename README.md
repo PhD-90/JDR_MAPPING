@@ -7,7 +7,7 @@ et suivi des combats en direct.**
 
 <a href="docs/visite-guidee.mp4"><img src="docs/visite-guidee.gif" alt="Visite guidée de JDR Mapping, thème Grimoire : monde, modules de carte, personnages, combat, sorts, IA, simulateur et outils du MJ" width="100%"></a>
 
-**🎬 [Regarder la visite guidée en vidéo (MP4, 1 min 42)](docs/visite-guidee.mp4)** · 28 scènes avec le thème Grimoire, les modules de création et les attaques des 15 nouveaux monstres
+**🎬 [Regarder la visite guidée en vidéo (MP4, 2 min)](docs/visite-guidee.mp4)** · 34 scènes : thème Grimoire, équipement, atlas, camp, carnet, rencontres préparées et attaques des 15 nouveaux monstres
 
 Génère le monde de ta campagne, suis le groupe de ville en donjon, construis les cartes de combat,
 puis fais jouer l'affrontement : initiative, points de vie, sorts, jets de dés, brouillard de guerre,
@@ -20,6 +20,11 @@ une rencontre 200 fois pour en mesurer la difficulté réelle. Le MJ garde toujo
 **Habillage Grimoire** : panneaux en cuir sombre, fiches et outils du MJ sur parchemin, accents rouge et or,
 icônes dessinées et cartes posées sur une table de jeu. Les textures et polices fonctionnent hors ligne.
 Les nouveaux mondes utilisent le style parchemin, désactivable dans les options d'affichage.
+
+**Équipement des aventuriers** : 55 équipements, objets personnalisés, inventaire visuel, effets réels en combat et coffre commun.
+**Atlas de campagne** : mini-carte, favoris, lieux visités et itinéraires à étapes avec estimation des vivres.
+**Camp des aventuriers** : état du groupe, répartition des provisions, allures de voyage et repos avec choix des dés de vie.
+**Carnet du MJ** : séances, PNJ, quêtes à objectifs et bibliothèque de rencontres avec renforts.
 
 </div>
 
@@ -94,7 +99,7 @@ Les nouveaux mondes utilisent le style parchemin, désactivable dans les options
 | --- | --- | --- |
 | 1 | Crée les héros : nom, race, classe, caractéristiques. Quatre héros d'exemple sont déjà prêts. | 🧙 Personnages |
 | 2 | Ouvre la carte du monde : le groupe attend dans une capitale. | 🌍 Monde |
-| 3 | Sélectionne le groupe (**👥 Sélectionner tout le groupe**) puis fais un **clic droit** sur un donjon : le voyage est noté avec sa durée. | 🌍 Monde |
+| 3 | Sélectionne le groupe (**⌖ Groupe**) puis fais un **clic droit** sur un donjon : vérifie le trajet et clique **Partir vers la prochaine étape**. | 🌍 Monde |
 | 4 | Clique sur le donjon puis **⚔ Générer la carte de combat** : une carte adaptée au lieu est créée et ouverte dans l'éditeur. | 🌍 Monde → 🛠 Éditeur |
 | 5 | Ajuste la carte si besoin : murs, relief, pièges... | 🛠 Éditeur |
 | 6 | Pose les héros (**Mes personnages**) et les monstres, ou génère une **rencontre équilibrée** et clique **➕ Poser sur la carte de combat**. | 🎲 Jouer / 📜 Outils MJ |
@@ -113,7 +118,7 @@ Les nouveaux mondes utilisent le style parchemin, désactivable dans les options
 | 🛠 **Éditeur** | Construire la carte de combat : sols, éléments, relief, presets |
 | 🎲 **Jouer la carte** | Le combat : figurines, initiative, PV, attaques, sorts, brouillard, écran des joueurs |
 | 🧙 **Personnages** | Fiches de personnages et de PNJ, progression |
-| 📜 **Outils MJ** | Générateurs (rencontres, PNJ, trésors, quêtes...), notes de session, aide-mémoire |
+| 📜 **Outils MJ** | Générateurs, carnet de campagne (séances, PNJ, quêtes, rencontres préparées), notes et aide-mémoire |
 
 En haut à droite : **🔊** pour couper ou activer le son, et **📍 nom du lieu** quand la carte de combat ouverte
 appartient à un lieu du monde (un clic y ramène).
@@ -148,7 +153,7 @@ La méthode s'inspire de [Red Blob Games](https://www.redblobgames.com/maps/poly
 | --- | --- |
 | Se déplacer sur la carte | Glisser, molette pour zoomer, **Voir tout le monde** |
 | Sélectionner un personnage | Clic sur sa figurine ; **Maj+clic** pour former un groupe |
-| Voyager | **Clic droit** sur la carte ou sur un lieu. Durée selon la distance et le terrain (forêt ×1,5, montagne ×2,5, marais ×2...), bateau pour traverser la mer |
+| Voyager | **Clic droit** prépare le trajet ; **Maj+clic droit** ajoute une étape. Cliquer **Partir vers la prochaine étape** dans le carnet de route. Durée selon le terrain, bateau pour traverser la mer |
 | Préparer un trajet | Survoler la carte avec un personnage sélectionné : l'infobulle donne la distance et le nombre de jours |
 | Déplacer librement | Glisser une figurine ou un lieu |
 | Inspecter un lieu | Clic : nom, type, royaume, terrain, population, description et **notes du MJ** modifiables, personnages présents |
@@ -158,6 +163,44 @@ La méthode s'inspire de [Red Blob Games](https://www.redblobgames.com/maps/poly
 
 Chaque trajet est noté dans le **journal de voyage** (jour, départ, arrivée, distance, terrain traversé).
 
+### Atlas et carnet de route
+
+![Atlas : itinéraire, favoris, vivres et mini-carte](docs/images/atlas.png)
+
+- **Mini-carte** cliquable pour recentrer la vue ; ses flèches clavier déplacent la caméra quand elle a le focus.
+- Boutons **+ / −**, **Groupe (P)** et **Monde (F)** ; option pour suivre les aventuriers pendant leur voyage.
+- Lieux marqués **favoris** ou **visités**, filtres dédiés, recherche et tri par nom, type ou proximité du groupe.
+- Un **itinéraire de 12 étapes maximum**, réordonnable et sauvegardé dans la campagne. Le carnet affiche les kilomètres,
+  les jours réellement décomptés, l’arrivée estimée et les rations manquantes par personnage.
+- Les trajets suivent des segments directs ; une traversée maritime est signalée pour prévoir un bateau avec le MJ.
+- Une rencontre interrompt le déplacement et conserve l’étape à terminer. Résous ou évite la rencontre, puis reprends le trajet.
+- Les figurines proches sont espacées à l’écran, sans modifier leurs coordonnées de campagne.
+
+### Camp et préparation de l’expédition
+
+![Camp : état des aventuriers, rations et repos](docs/images/expedition.png)
+
+Dans **Monde → Gérer l’expédition**, retrouve les PV, les rations et les dés de vie de chaque aventurier vivant.
+Le camp reprend le groupe de l’itinéraire ou la sélection du monde ; coche les participants pour le repos ou le ravitaillement.
+
+- **Provisions** : choisis un objectif de 1 à 365 jours par personne. L’aperçu montre les quantités avant/après et les
+  rations encore manquantes. La distribution utilise seulement le coffre commun, en donnant la priorité aux sacs les moins fournis.
+- **Allure** : prudente (20 km/j), normale (30 km/j) ou rapide (40 km/j), ajustée selon les terrains.
+  Ce réglage agit sur la durée terrestre ; la vitesse en mer reste à 120 km/j. Aucun bonus de discrétion ou malus de perception n’est appliqué.
+- **Options de voyage** : événements aléatoires activables et ravitaillement automatique depuis le coffre.
+  Seuls les jours effectivement parcourus avant une éventuelle rencontre consomment des vivres.
+- **Repos court** : choisis le nombre maximal de dés à dépenser pour chacun, y compris zéro ; les jets s’arrêtent aux PV maximum.
+  Le repos recharge aussi les capacités concernées. **Repos long** : PV pleins, capacités, charges des objets et récupération
+  de dés de vie pour les participants ; le calendrier avance d’un jour.
+- Les figurines déjà placées reçoivent les PV et ressources mis à jour. Les défunts sont exclus ; les voyages, distributions
+  et repos du camp attendent la fin d’un combat ou la résolution d’une rencontre en chemin.
+- Les opérations sont consignées au journal et sauvegardées. Elles démarrent un nouvel historique d’annulation de la carte,
+  afin qu’un ancien geste ne puisse pas rendre des vivres consommés ou annuler des soins sans changer le calendrier.
+
+Les boutons **Repos court / long** du monde ouvrent ce panneau avant application. Le repos individuel de la fiche reste
+disponible hors combat et peut s’annuler avec Ctrl+Z. Un voyage sauvegarde immédiatement sa destination finale ;
+recharger la page pendant l’animation conserve la position d’arrivée et les ressources déjà décomptées.
+
 ### Voyages, quêtes et réputation
 
 ![Rencontre en chemin, quêtes et réputation](docs/images/voyage-evenements.png)
@@ -166,9 +209,13 @@ Chaque trajet est noté dans le **journal de voyage** (jour, départ, arrivée, 
   ⚔ **rencontre** (équilibrée pour le groupe, elle **arrête le voyage** sur place), 💰 découverte, 🧑 voyageur qui raconte
   une rumeur, 🌦 météo. Une rencontre propose **⚔ Préparer le combat** (carte générée selon le terrain, groupe et
   monstres déjà placés), **🧪 Simuler** ou **✖ Éviter**.
-- **Vivres** : chaque personnage mange une 🍞 ration par jour de route ; sans vivres, il perd des PV.
-- **📜 Quêtes** : créées depuis le générateur des Outils MJ (**📌 Ajouter aux quêtes**), avec un **❗** sur le lieu
-  visé. **✔ Réussie** partage l'or de la récompense et améliore la réputation ; **✖ Échouée** la fait baisser.
+- **Vivres** : chaque aventurier vivant mange une 🍞 ration par jour de route ; sans vivres, il perd 2 PV par jour manquant,
+  avec un minimum de 1 PV s’il était conscient. Un personnage déjà à 0 PV reste à 0.
+- **📜 Quêtes** : créées dans le **Carnet de campagne** ou depuis le générateur des Outils MJ, avec un **❗** sur le lieu
+  visé. Objectifs à cocher, commanditaire, échéance et récompenses personnalisées. **✔ Réussie** distribue l'or et l'XP
+  une seule fois et améliore la réputation ; **✖ Échouée** la fait baisser. Le carnet permet d'archiver les quêtes.
+- **📖 Carnet de chaque lieu** : ses PNJ et ses quêtes s'ouvrent directement depuis son panneau. Les boutons **+ PNJ**
+  et **+ Quête** créent une entrée déjà liée au lieu.
 - **Réputation** par royaume (de −5 à +5, réglable avec − / +) : chaque point fait varier les prix de 5 %.
 - **🛒 Marché** dans les villes, ports et capitales (choix réduit au village) : potions, antidote, parchemin, rations,
   torches, corde, payés avec l'or de la fiche.
@@ -306,10 +353,10 @@ puis ajustables avec − / +. Les bonus de race s'ajoutent.
 | --- | --- |
 | Points de vie | dé de vie + mod. CON au niveau 1, puis (moitié du dé + 1 + mod. CON) par niveau |
 | Maîtrise | +2 au niveau 1, +1 tous les 4 niveaux |
-| Bonus de toucher | maîtrise + mod. de la caractéristique d'attaque |
+| Bonus de toucher | maîtrise si l’arme est maîtrisée + mod. de la caractéristique d’attaque + bonus magique |
 | Dégâts | dé de l'arme + mod. (sans mod. pour un sort) |
 | Initiative | mod. DEX |
-| Déplacement, portée, escalade, nage, vol | selon la race et la classe |
+| Déplacement, portée, escalade, nage, vol | selon la race, la classe et l’équipement |
 
 Chaque valeur peut être **modifiée à la main** (bordure violette, valeur calculée rappelée) ; **↺ Recalculer** revient au calcul.
 
@@ -338,6 +385,44 @@ Chaque valeur peut être **modifiée à la main** (bordure violette, valeur calc
 
 Boutons : **➕ Placer sur la carte**, **↻ Mettre à jour les figurines sur la carte** (après une modification de la fiche),
 **⧉ Dupliquer**, **🗑 Supprimer**, **💾 Exporter / 📂 Importer** les fiches.
+
+### Équipement et inventaire
+
+![Équipement autour du personnage : armure, armes et accessoires](docs/images/equipement.png)
+
+La fiche propose **10 emplacements** : main principale, main secondaire, armure, tête, cape, gants, bottes,
+amulette et deux anneaux. Chaque personnage reçoit un équipement de départ adapté à sa classe.
+Le sac distingue les objets **possédés**, **équipés** et **harmonisés**, ainsi que l’attaque actuellement utilisée.
+
+| Fonction | Utilisation |
+| --- | --- |
+| Armes et armures | 55 équipements, dont armes à une ou deux mains, armes de finesse, armes de lancer, arcs, arbalètes, boucliers et trois catégories d’armure. |
+| Comparaison | Cliquer sur un objet affiche la CA, le toucher, les dégâts et la portée avant / après. Équiper par bouton ou glisser sur un emplacement. |
+| Combat | L’arme détermine le type de dégâts, la caractéristique, la portée et l’animation. Choisir parmi les armes tenues, le trait de feu du mage ou les mains nues. Deux armes légères autorisent une attaque secondaire avec l’action bonus. |
+| Deux mains | Une arme à deux mains range l’objet secondaire ; il faut la retirer avant de reprendre un bouclier. Une arme polyvalente peut être tenue à deux mains si la main secondaire est libre. |
+| Maîtrise | Une arme non maîtrisée perd le bonus de maîtrise ; armure ou bouclier non maîtrisé impose le désavantage aux attaques. Une armure bruyante pénalise la discrétion. |
+| Objets magiques | Armes +1 à +3, protections, résistances, bonus de déplacement ou de compétences et pouvoirs à charges. Trois harmonisations maximum ; les charges reviennent au repos long. |
+| Personnalisation MJ | Créer un objet depuis un modèle : nom, description, rareté, poids, prix, dégâts, portée, bonus, résistance et pouvoir. L’armurerie permet aussi d’attribuer gratuitement du matériel. |
+| Échanges | Donner un exemplaire à un autre personnage, transférer une quantité de fournitures, déposer au coffre commun ou sur la carte. Une arme lancée est récupérable depuis les objets déposés sur la carte. |
+| Commerce | Les marchés vendent du matériel adapté au lieu ; les capitales proposent aussi les objets magiques. Revente à moitié du prix local, modifié par la réputation. Retirer un objet avant de le vendre. |
+| Butin | Les trésors générés, découvertes en voyage et récompenses de combat peuvent rejoindre le coffre commun. Une même récompense ne se récupère qu’une fois. |
+
+![Inventaire, comparaison et actions sur un objet](docs/images/inventaire.png)
+
+**Règles de cette application** : en combat, changer l’équipement coûte une action bonus ; choisir une attaque déjà disponible est gratuit.
+En mode strict, armures, accessoires, harmonisations, commerce et transferts se gèrent hors combat.
+Les accessoires ordinaires n’ajoutent pas automatiquement de CA. Les valeurs de combat personnalisées par le MJ restent prioritaires.
+
+Trois options de campagne sont disponibles dans la fiche : **munitions décomptées**, **surcharge** et **usure**.
+La capacité est FOR × 7,5 kg ; la surcharge retire 2 cases de déplacement. Le poids est toujours affiché.
+Avec l’usure, une attaque retire 1 point d’état à l’arme ; recevoir des dégâts use l’armure et le bouclier.
+À 0/100, l’arme ne peut plus attaquer et une protection ne contribue plus à la CA. Les marchés réparent les objets,
+pour une part du prix local proportionnelle à l’usure (25 % du prix pour une réparation complète).
+Les anciennes notes d’inventaire restent conservées comme texte libre ; leur contenu n’est pas ajouté automatiquement au sac.
+
+Les consommables et charges sont synchronisés entre fiche et figurines ; **Ctrl+Z / Ctrl+Maj+Z** annule ou rétablit les opérations.
+La simulation utilise des copies et ne consomme pas les objets réels. Fiches exportées : équipement individuel ; campagne exportée : équipement,
+coffre commun, options, monde et itinéraire.
 
 ---
 
@@ -750,18 +835,84 @@ zones de portée et marqueurs masqués, et un bandeau « lieu · round · tour d
 | --- | --- |
 | ⚔ **Rencontre aléatoire** | Monstres équilibrés selon le nombre et le niveau des personnages (seuils d'XP du Guide du maître, multiplicateur selon le nombre de monstres) et le terrain (proposé selon le lieu de la carte). **➕ Poser sur la carte de combat** les place loin du groupe, **cachés** si on veut une embuscade ; **🧪 Tester** la simule |
 | 🎯 **Test de compétence** | Compétence, DD, normal / avantage / désavantage, personnages concernés (avec leur perception passive) : chacun lance, réussite du groupe si la moitié réussit |
-| 🧑 **PNJ** | Nom, race, métier, signe distinctif, caractère, motivation et secret ; **📜 Créer sa fiche** |
+| 🧑 **PNJ** | Nom, race, métier, signe distinctif, caractère, motivation et secret ; **📜 Créer sa fiche** ou **📖 Conserver dans le carnet** |
 | 💰 **Trésor** | Or et objets selon le niveau ; **➗ Partager l'or** entre les fiches des personnages |
 | 📜 **Quête** | Commanditaire, objectif, lieu de ton monde, complication, récompense ; **📌 Ajouter aux quêtes** du monde |
 | 🗣 **Rumeur** | Vraie ou fausse (indiqué au MJ seulement) |
 | 🍺 **Taverne** | Nom, tenancier, spécialité, prix, rumeur entendue |
 | 🌦 **Météo** | Selon le climat et la saison, avec ses effets en jeu |
 
-Chaque résultat va dans l'**historique** (📋 copier, 📝 ajouter aux notes). Le panneau de droite contient les
+Les 30 derniers résultats restent dans l'**historique**, y compris après rechargement (📋 copier, 📝 ajouter aux notes). Le panneau de droite contient les
 **notes de session** (🕒 horodatage avec le jour du monde, export `.txt`) et un **aide-mémoire** : degrés de difficulté,
 actions en combat, abri, avantage, états, rythme de voyage, repos.
 
 ![Rencontre posée sur la carte](docs/images/rencontre.png)
+
+### 📖 Carnet de campagne
+
+Dans **Outils MJ → Carnet de campagne**, quatre rubriques gardent les informations de la partie. Les champs sont
+enregistrés automatiquement. La recherche retrouve les noms, lieux, factions et contenus ; **Archiver** masque une
+entrée sans l'effacer, et **Afficher les archives → Restaurer** la remet dans la liste.
+
+![Préparation d'une séance dans le carnet](docs/images/carnet.png)
+
+- **Séances** : titre, date réelle, jour du monde, lieu, état (à préparer, en cours, terminée), préparation,
+  objectifs à cocher, récapitulatif et pistes pour la suite. **Préparer la séance suivante** reprend les pistes et
+  les objectifs inachevés dans une nouvelle entrée ; l'ancienne séance reste intacte. La date et le jour sont des
+  repères de notes : les changer ne fait pas avancer le calendrier du monde.
+- **PNJ** : métier, faction, attitude envers le groupe, portrait, motivations et secrets du MJ séparés.
+  Un PNJ peut être lié à un lieu et à une fiche existante, ou recevoir une nouvelle fiche. Le bouton de fiche
+  rouvre ensuite celle-ci. Supprimer un lieu ou une fiche conserve les notes du PNJ.
+- **Quêtes** : création libre ou édition des accroches générées, lieu, commanditaire, objectifs, échéance en jours
+  du monde, récompense narrative, or total et XP par personnage. L'échéance signale un retard sans faire échouer
+  automatiquement la quête.
+
+| Répertoire des PNJ | Journal des quêtes |
+| --- | --- |
+| ![PNJ lié à un lieu et à une faction](docs/images/carnet-pnj.png) | ![Quête, objectifs et récompenses](docs/images/carnet-quetes.png) |
+
+Coche tous les objectifs puis clique **Réussie · attribuer les récompenses**. L'or est partagé entre les personnages
+vivants du groupe et le reste va au coffre commun ; sans groupe, tout l'or va au coffre. Chaque bénéficiaire reçoit
+la quantité d'XP indiquée. Le reçu conserve le jour et le bilan de la clôture. Une quête clôturée ne redistribue
+jamais sa récompense, et annuler un geste sur la battlemap conserve ces gains. Les objets, titres et faveurs de la
+récompense narrative sont attribués manuellement par le MJ.
+
+**Carnet (.txt)** exporte les séances, PNJ, quêtes et rencontres préparées, archives comprises. **Campagne (.json)** sauvegarde aussi le
+monde, les fiches, l'équipement, les notes libres et l'historique des générateurs. Le carnet contient les secrets du MJ.
+
+### ⚔ Bibliothèque de rencontres et renforts
+
+![Composer et estimer une rencontre](docs/images/rencontres-preparees.png)
+
+Dans **Carnet de campagne → Rencontres**, prépare tes combats à l'avance, ou conserve une rencontre aléatoire
+avec **Enregistrer la rencontre** dans le générateur.
+
+- **Composition modifiable** : recherche et filtre de taille dans les 21 monstres du bestiaire, quantités,
+  statistiques et empreintes sur la carte. Jusqu'à **30 figurines réparties dans 4 vagues**, nommables et réordonnables.
+- **Difficulté par vague** : XP brutes et ajustées, seuils facile à mortel, calculés à partir des niveaux de chaque
+  fiche vivante du groupe. Un **groupe théorique** permet de préparer une rencontre pour 1 à 10 personnages de niveau 1 à 20.
+  L'estimation utilise le barème du générateur ; l'équipement, le terrain et les ressources restantes changent le résultat réel.
+- **Contexte de campagne** : titre, ambiance, tactiques, lieu et séance associés. La rencontre se retrouve aussi
+  dans les panneaux du lieu et de la séance. Recherche, duplication et archivage fonctionnent comme dans le reste du carnet.
+- **Aperçu du placement** : choix du bord d'arrivée ou du côté opposé aux héros. Les grandes figurines sont placées
+  en premier, sur une surface de même hauteur, sans chevauchement, obstacle infranchissable, eau, lave ou vide.
+  Le placement automatique utilise des cases au sol, y compris pour les créatures volantes ou aquatiques.
+- **Pose complète ou refus** : si toute la vague ne tient pas, aucune figurine n'est ajoutée. La pose conserve les décors
+  et les figurines présentes, peut cacher les nouveaux monstres aux joueurs et s'annule en un seul **Ctrl+Z**.
+- **Simulation de la vague sélectionnée** : utilise les héros présents sur la carte, ou les fiches vivantes du groupe
+  si aucun héros n'y figure. Les autres monstres sont retirés de la copie de simulation. La carte et les ressources réelles
+  restent intactes ; chaque vague est testée séparément.
+
+![Déclencher les renforts pendant le combat](docs/images/renforts.png)
+
+La première pose enregistre une copie des vagues dans la carte. Dans **Jouer → Renforts préparés**, déclenche les suivantes
+au moment voulu : les monstres lancent leur initiative et rejoignent le combat sans changer le personnage actif.
+Une vague déjà posée ne peut pas être ajoutée deux fois. Les vagues déclenchées, les figurines et l'ordre d'initiative
+sont conservés dans la sauvegarde de carte et l'export de campagne.
+
+Modifier le modèle du carnet ne change pas les renforts déjà préparés sur une carte. **Dupliquer** permet d'y utiliser
+une nouvelle version. **Retirer toutes les figurines** retire aussi les plans de renforts de cette carte ; **Recommencer**
+le combat conserve les figurines de toutes les vagues déjà déclenchées.
 
 ---
 
@@ -842,16 +993,21 @@ Tout est enregistré **automatiquement dans le navigateur** (stockage local). Po
 
 | Fichier | Contenu | Où |
 | --- | --- | --- |
-| **Campagne** `.json` | Monde, lieux et leurs cartes de combat, fiches, carte en cours, caractéristiques | 🌍 Monde → 💾 Exporter / 📂 Importer |
-| Carte `.json` | Une carte de combat (avec figurines, brouillard, marqueurs) | 🛠 Éditeur → Sauvegarder / Charger |
+| **Campagne** `.json` | Monde, lieux, quêtes, cartes, fiches, équipement et coffre, caractéristiques, carnet, notes et historique du MJ | 🌍 Monde → 💾 Exporter / 📂 Importer ; export aussi depuis le carnet |
+| Carte `.json` | Une carte de combat (avec figurines, brouillard, marqueurs et vagues de renforts) | 🛠 Éditeur → Sauvegarder / Charger |
 | Carte `.png` | Image de la carte | 🛠 Éditeur → Exporter PNG |
 | Personnages `.json` | Toutes les fiches | 🧙 Personnages → Exporter / Importer |
 | Journal `.txt` | Journal de combat | 🎲 Jouer → Exporter |
 | Notes `.txt` | Notes de session | 📜 Outils MJ → Exporter |
+| Carnet `.txt` | Séances, PNJ, quêtes, rencontres et archives (lecture seule) | 📜 Outils MJ → Carnet → Carnet (.txt) |
 | Caractéristiques `.txt` | Règles et figurines de base | `data/caracteristiques.txt` |
 
 > ⚠️ Le stockage du navigateur est limité (environ 5 Mo) : exporte la campagne régulièrement.
 > Une alerte prévient s'il est plein.
+
+Les campagnes exportées utilisent le **format v4**. Les anciens fichiers restent importables : s'ils n'ont pas de
+carnet, celui-ci démarre vide, sans reprendre les notes de la campagne précédente. L'import remplace la campagne et
+réinitialise l'historique d'annulation de la battlemap.
 
 ---
 
@@ -959,6 +1115,10 @@ en double-cliquant le fichier. Les scripts sont chargés dans cet ordre par `ind
 index.html                 Page, onglets et panneaux
 css/style.css              Structure et composants de l'interface
 css/grimoire.css           Thème fantasy : cuir, parchemin, typographie, navigation et petits écrans
+css/equipment.css          Inventaire, emplacements et navigation de l’atlas
+css/notebook.css           Carnet du MJ, séances, répertoire et quêtes
+css/encounters.css         Composition, estimation, aperçu et renforts
+css/expedition.css         Camp, provisions et repos du groupe
 data/caracteristiques.txt  Règles de déplacement et statistiques des figurines de base
 docs/images/               Images de ce README
 docs/visite-guidee.*       Visite guidée (GIF en tête du README, vidéo MP4)
@@ -986,6 +1146,7 @@ js/fog.js        Brouillard de guerre, marqueurs secrets, écran des joueurs
 js/sfx.js        Effets sonores synthétisés
 js/actions.js    Capacités et sorts, actions standard, ciblage
 js/items.js      Objets, inventaire, marché
+js/equipment.js  Catalogue, équipement, effets en combat et transactions
 js/skills.js     Compétences, perception passive, pièges et secrets automatiques
 js/ai.js         IA des héros et des monstres (rôles, traits, moral), mode spectateur
 js/sim.js        Simulateur de combat et rapport
@@ -993,6 +1154,11 @@ js/gmtools.js    Onglet Outils MJ : générateurs, notes, aide-mémoire
 js/worldgen.js   Génération du monde : relief, rivières, climat, biomes, royaumes, lieux
 js/world.js      Onglet Monde : affichage, voyages, lieux, cartes liées, campagne
 js/campaign.js   Événements de voyage, vivres, quêtes, réputation, marché, repos
+js/equipment-ui.js Fiches d’équipement, objets personnalisés, coffre et commerce
+js/world-atlas.js Mini-carte, itinéraires, favoris et navigation du monde
+js/encounters.js  Bibliothèque de rencontres, vagues, budget d'XP et placement
+js/notebook.js    Carnet de campagne, PNJ, séances, objectifs et sauvegardes du MJ
+js/expedition.js Camp du groupe, distribution des rations, allures et repos sélectionnés
 js/input.js      Souris et clavier (éditeur)
 js/ui.js         Panneaux, palettes, réglages de carte
 js/io.js         Sauvegarde, chargement, export PNG
@@ -1006,7 +1172,8 @@ js/main.js       Démarrage
 | Une figurine | `SPRITES` (`js/sprites.js`, dessin 16×16, une lettre par couleur), sa section dans `data/caracteristiques.txt`, son animation dans `ATTACKS` (`js/anims.js`) |
 | Une race / une classe | `RACES` / `CLASSES` (`js/rules.js`) ; capacités de la classe dans `CLASS_ACTIONS` (`js/actions.js`) |
 | Une capacité / un sort | `ACTIONS` (`js/actions.js`) : coût, récupération, niveau requis, type de dégâts |
-| Un objet | `ITEMS` et `SHOP` (`js/items.js`) |
+| Un consommable | `ITEMS` (`js/items.js`) et son poids dans `ITEM_WEIGHT` (`js/equipment.js`) |
+| Un équipement | `GEAR` (`js/equipment.js`) ; ses effets et emplacements sont décrits dans la même définition |
 | Une compétence | `SKILLS` et `CLASS_SKILLS` (`js/skills.js`) |
 | Un trait de monstre | clé `traits` dans `data/caracteristiques.txt`, effet dans `attack` / `attackMods` (`js/combat.js`) et l'IA (`js/ai.js`) |
 | Un rôle d'IA | `ROLES` et `bestAttackSpot` (`js/ai.js`) |
@@ -1031,6 +1198,13 @@ Les images intermédiaires restent dans `.tmp/readme-media` pour vérification ;
 
 `py scripts/check_bestiary.py` vérifie aussi les monstres, les empreintes sur la carte, les filtres,
 les anciens fichiers de caractéristiques et 75 combats simulés dans un profil isolé.
+`py scripts/check_equipment.py` vérifie l’équipement, les ressources, les échanges, les objets magiques et l’atlas.
+`py scripts/check_notebook.py` vérifie les séances, les PNJ, les objectifs, l'attribution unique des récompenses,
+les exports/imports de campagne v3/v4, le rechargement et l'affichage à 1440, 1024 et 760 pixels.
+`py scripts/check_encounters.py` vérifie la composition des rencontres, les niveaux mixtes, le placement,
+les renforts en combat, l'annulation, les sauvegardes et trois simulations isolées.
+`py scripts/check_expedition.py` vérifie les provisions, les dés de vie, la synchronisation des PV, les allures,
+la sauvegarde des voyages, le rechargement et l’affichage du camp jusqu’à 390 pixels.
 
 ---
 

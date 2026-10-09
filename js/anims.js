@@ -31,7 +31,7 @@ const ATTACKS = {
   hill_giant: { kind:'melee', fx:'smash', color:'#dac394', name:'Massue du géant', dur:1300, shake:10 },
 };
 const DEFAULT_ATTACK = { kind:'melee', fx:'slash', color:'#ffffff', name:'Attaque', dur:750 };
-const attackOf = u => ATTACKS[u.sprite] || DEFAULT_ATTACK;
+const attackOf = u => u.gearCombat?.attack || ATTACKS[u.sprite] || DEFAULT_ATTACK;
 
 let anims = [], pops = [], areaList = [], animRaf = 0;
 

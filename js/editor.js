@@ -77,7 +77,7 @@ function removeObj(o) { map.objects = map.objects.filter(x => x !== o); if (sel 
 function pushUndo() {
   if (SIM) return;
   redoStack.length = 0;
-  undoStack.push(JSON.stringify(map));
+  undoStack.push(historySnapshot());
   if (undoStack.length > 80) undoStack.shift();
   syncHistoryUI();
 }
@@ -86,10 +86,12 @@ function undo() {
 }
 function redo() { restoreHistory(redoStack, undoStack); }
 let restoringHistory = false;
+function historySnapshot() { return JSON.stringify({...map,__equipment:equipmentHistory()}); }
 function restoreHistory(from, to) {
   if (!from.length || SIM) return;
-  to.push(JSON.stringify(map));
+  to.push(historySnapshot());
   map = JSON.parse(from.pop());
+  restoreEquipmentHistory(map.__equipment);delete map.__equipment;
   drag = null; attackMode = false; actionMode = null;
   $('attackHint').classList.add('hidden');
   restoringHistory = true;

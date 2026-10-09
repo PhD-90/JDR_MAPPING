@@ -3,7 +3,6 @@
 // carte de combat liée à chaque lieu et sauvegarde complète de la campagne.
 
 const WCELL = 4;                 // taille d'une case du monde en pixels (zoom 1)
-const KM_PER_DAY = 30;           // marche par jour sur terrain facile
 const KM_PER_DAY_SEA = 120;      // traversée en bateau
 
 let world = null, WT = null;     // données sauvegardées / terrain recalculé (cache)
@@ -22,7 +21,7 @@ function newWorld(seed = (Math.random() * 1e6) | 0, style = 'continent') {
 }
 // Au démarrage on lit seulement les données ; le terrain est calculé à la première ouverture de l'onglet
 function loadWorld() {
-  try { const raw = localStorage.getItem('jdr-world'); if (raw) { world = JSON.parse(raw); world.opts ||= {}; } } catch (e) {}
+  try { const raw = localStorage.getItem('jdr-world'); if (raw) { world = JSON.parse(raw); world.opts ||= {}; world.quests=normalizeQuests(world.quests); } } catch (e) {}
 }
 let worldSaveTimer = 0, quotaWarned = false;
 function saveWorld(now = false) {
@@ -137,7 +136,7 @@ function travelInfo(a, b) {
   }
   const km = cells * world.scale, kmLand = km * land / steps, kmSea = km * sea / steps;
   const avg = land ? mult / land : 1;
-  const days = kmLand / (KM_PER_DAY / avg) + kmSea / KM_PER_DAY_SEA;
+  const days = kmLand / (EXPEDITION_PACES[expeditionOptions().pace].km / avg) + kmSea / KM_PER_DAY_SEA;
   const terrain = Object.entries(seen).sort((p, q) => q[1] - p[1]).slice(0, 2).map(e => e[0].toLowerCase());
   return { km: Math.round(km), days: Math.max(0.5, Math.round(days * 2) / 2), sea: kmSea > 1, terrain };
 }
@@ -158,15 +157,19 @@ function ensurePositions() {
 function selectedSheets() { return [...wsel.ids].map(getSheet).filter(Boolean); }
 
 function travelTo(target, targetLoc = null) {
-  const list = selectedSheets(); if (!list.length) return;
+  if(expeditionBlocked()){atlasNotice(expeditionBlocked());return false;}
+  target={x:clamp(target.x,0,world.W-1),y:clamp(target.y,0,world.H-1)};
+  const list = selectedSheets().filter(s=>!s.dead); if (!list.length) return false;
   const from = { x: list.reduce((s, c) => s + world.pos[c.id].x, 0) / list.length, y: list.reduce((s, c) => s + world.pos[c.id].y, 0) / list.length };
   const info = travelInfo(from, target), fromName = placeName(from.x, from.y), toName = targetLoc ? targetLoc.name : placeName(target.x, target.y);
+  if(info.km===0)return false;
   const days = Math.ceil(info.days);
   world.journal.unshift({ day: world.day, text: `${list.map(s => s.name).join(', ')} : ${fromName} → ${toName}, ${info.km} km en ${fmtLevel(info.days)} jour${info.days > 1 ? 's' : ''}` +
     (info.terrain.length ? ` (${info.terrain.join(', ')}${info.sea ? ', traversée en bateau' : ''})` : info.sea ? ' (en bateau)' : '') });
   // vivres et événements du voyage (rencontre, découverte, voyageur, météo)
   const ev = travelEvents(list, from, target, days);
   if (ev.stop) target = ev.stop;   // une rencontre arrête le groupe en chemin
+  else if(targetLoc)targetLoc.visited=true;
   ev.out.forEach(t => world.journal.unshift({ day: world.day + ev.days, text: t }));
   world.day += ev.days;
   if (world.pending) setTimeout(() => { wsel = { loc: null, ids: new Set() }; renderWorldPanels(); }, 50);
@@ -174,19 +177,23 @@ function travelTo(target, targetLoc = null) {
   list.forEach((s, i) => {
     starts[s.id] = { ...world.pos[s.id] };
     const a = i * (Math.PI * 2 / list.length), r = list.length > 1 ? 1.2 : 0;
-    ends[s.id] = { x: target.x + Math.cos(a) * r, y: target.y + Math.sin(a) * r };
+    ends[s.id] = { x: clamp(target.x + Math.cos(a) * r,0,world.W-1), y: clamp(target.y + Math.sin(a) * r,0,world.H-1) };
   });
-  wanim = { starts, ends, start: performance.now(), dur: clamp(600 + info.km * 2, 700, 2200) };
+  // Save the completed destination immediately; animation only changes the visual positions.
+  Object.assign(world.pos,ends);
+  wanim = { starts, ends, positions:{...starts}, start: performance.now(), dur: clamp(600 + info.km * 2, 700, 2200) };
   requestAnimationFrame(worldAnimTick);
-  saveWorld(); renderWorldPanels();
+  saveExpedition();return true;
 }
+function worldVisualPosition(id) {return wanim?.positions?.[id]||world.pos[id];}
 function worldAnimTick() {
   if (!wanim) return;
   const q = clamp((performance.now() - wanim.start) / wanim.dur, 0, 1), k = easeInOut(q);
   for (const id in wanim.starts) {
     const a = wanim.starts[id], b = wanim.ends[id];
-    world.pos[id] = { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k };
+    wanim.positions[id] = { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k };
   }
+  if(atlasFollow){const points=Object.values(wanim.positions),p={x:points.reduce((n,p)=>n+p.x,0)/points.length,y:points.reduce((n,p)=>n+p.y,0)/points.length};wcam.x=wcv.clientWidth/2-p.x*WCELL*wcam.z;wcam.y=wcv.clientHeight/2-p.y*WCELL*wcam.z;}
   drawWorld();
   if (q < 1) requestAnimationFrame(worldAnimTick); else { wanim = null; saveWorld(); renderWorldPanels(); }
 }
@@ -236,12 +243,13 @@ function drawWorld() {
 
   // trajet en cours de préparation (personnages sélectionnés -> curseur)
   const sel = selectedSheets();
-  if (sel.length && whover && !wdrag && !wanim) {
+  if (sel.length && whover && !wdrag && !wanim && !world.route?.points.length) {
     const p = world.pos[sel[0].id];
     c.setLineDash([8 / z, 6 / z]); c.strokeStyle = 'rgba(255,230,120,.9)'; c.lineWidth = 2.5 / z;
     c.beginPath(); c.moveTo(p.x * WCELL, p.y * WCELL); c.lineTo(whover.x * WCELL, whover.y * WCELL); c.stroke(); c.setLineDash([]);
   }
 
+  drawWorldRoutes(c);
   // lieux
   const showAll = z > 1.1;
   c.textAlign = 'center';
@@ -252,6 +260,7 @@ function drawWorld() {
     c.font = `${s}px "Segoe UI Emoji", "Apple Color Emoji", system-ui`; c.textBaseline = 'middle';
     c.fillText(T.icon, x, y);
     if (l.battle) { c.font = `${s * 0.55}px system-ui`; c.fillText('⚔', x + s * 0.55, y - s * 0.45); }
+    if(l.favorite||l.visited){c.font=`bold ${10/z}px system-ui`;c.fillStyle=l.favorite?'#a44a1d':'#326b40';c.fillText(l.favorite?'★':'✓',x-s*.65,y);}
     const major = ['capitale', 'ville', 'port'].includes(l.type);
     if (o.labels && (major || showAll || isSel)) {
       const fs = (l.type === 'capitale' ? 14 : major ? 12 : 11) / z;
@@ -266,9 +275,11 @@ function drawWorld() {
 
   // personnages
   ensurePositions();
+  const tokenPositions=worldTokenPositions();
   sheets.forEach(s => {
-    const p = world.pos[s.id]; if (!p) return;
-    const x = p.x * WCELL, y = p.y * WCELL, sz = 30 / z, on = wsel.ids.has(s.id);
+    const p = worldVisualPosition(s.id); if (!p) return;
+    const {x,y}=tokenPositions.get(s.id), sz = 30 / z, on = wsel.ids.has(s.id);
+    if(Math.hypot(x-p.x*WCELL,y-p.y*WCELL)>5/z){c.strokeStyle='#644c3680';c.lineWidth=1/z;c.beginPath();c.moveTo(p.x*WCELL,p.y*WCELL);c.lineTo(x,y);c.stroke();}
     c.fillStyle = 'rgba(0,0,0,.4)'; c.beginPath(); c.ellipse(x, y + sz * 0.05, sz * 0.38, sz * 0.14, 0, 0, Math.PI * 2); c.fill();
     c.strokeStyle = on ? '#ffd23c' : s.camp === 'monster' ? '#ff4d4d' : '#4da3ff'; c.lineWidth = (on ? 3.5 : 2.2) / z;
     c.beginPath(); c.ellipse(x, y + sz * 0.05, sz * 0.42, sz * 0.16, 0, 0, Math.PI * 2); c.stroke();
@@ -293,6 +304,7 @@ function drawWorld() {
   c.fillStyle = '#8a7a5a'; c.beginPath(); c.moveTo(0, 20); c.lineTo(6, 0); c.lineTo(-6, 0); c.closePath(); c.fill();
   c.fillStyle = '#fff'; c.font = 'bold 10px system-ui'; c.textAlign = 'center'; c.fillText('N', 0, -22);
   c.restore();
+  drawAtlasMini();
 }
 
 function drawWorldSymbols(c, parch) {
@@ -345,7 +357,8 @@ function centerOn(x, y, z = Math.max(wcam.z, 1.8)) {
 const wToCell = e => ({ x: (e.offsetX - wcam.x) / wcam.z / WCELL, y: (e.offsetY - wcam.y) / wcam.z / WCELL });
 function hitToken(p) {
   const r = 16 / wcam.z / WCELL;
-  return [...sheets].reverse().find(s => { const q = world.pos[s.id]; return q && Math.abs(q.x - p.x) < r && p.y > q.y - r * 1.9 && p.y < q.y + r * 0.4; }) || null;
+  const points=worldTokenPositions();
+  return [...sheets].reverse().find(s => { const q = points.get(s.id); return q && Math.abs(q.x/WCELL - p.x) < r && p.y > q.y/WCELL - r * 1.9 && p.y < q.y/WCELL + r * 0.4; }) || null;
 }
 function hitLoc(p) {
   const r = 12 / wcam.z / WCELL;
@@ -356,11 +369,11 @@ wcv.addEventListener('contextmenu', e => e.preventDefault());
 wcv.addEventListener('mousedown', e => {
   const p = wToCell(e);
   if (e.button === 2) {   // clic droit : voyage du groupe sélectionné
-    if (wsel.ids.size) { const l = hitLoc(p); travelTo(l ? { x: l.x, y: l.y } : p, l); }
+    const l=hitLoc(p);planWorldStop(l||p,l,!!e.shiftKey);
     return;
   }
   if (e.button === 1) { wdrag = { mode: 'pan', sx: e.clientX, sy: e.clientY, cx: wcam.x, cy: wcam.y }; e.preventDefault(); return; }
-  if (e.button !== 0) return;
+  if (e.button !== 0 || wanim) return;
   if (wAddType) {
     const l = { id: 'u' + Date.now().toString(36), type: wAddType, x: p.x, y: p.y, name: `Nouveau lieu (${LOC_TYPES[wAddType].name.toLowerCase()})`,
                 desc: '', notes: '', battle: null, pop: 0 };
@@ -392,8 +405,8 @@ window.addEventListener('mousemove', e => {
   const p = wToCell(e), dx = p.x - wdrag.start.x, dy = p.y - wdrag.start.y;
   if (Math.hypot(dx, dy) * WCELL * wcam.z > 3) wdrag.moved = true;
   if (!wdrag.moved) return;
-  if (wdrag.mode === 'tokens') for (const id in wdrag.orig) world.pos[id] = { x: wdrag.orig[id].x + dx, y: wdrag.orig[id].y + dy };
-  if (wdrag.mode === 'loc') { wdrag.loc.x = wdrag.ox + dx; wdrag.loc.y = wdrag.oy + dy; }
+  if (wdrag.mode === 'tokens') for (const id in wdrag.orig) world.pos[id] = { x: clamp(wdrag.orig[id].x + dx,0,world.W-1), y: clamp(wdrag.orig[id].y + dy,0,world.H-1) };
+  if (wdrag.mode === 'loc') { wdrag.loc.x = clamp(wdrag.ox + dx,0,world.W-1); wdrag.loc.y = clamp(wdrag.oy + dy,0,world.H-1); }
   wredraw();
 });
 window.addEventListener('mouseup', () => {
@@ -405,7 +418,7 @@ window.addEventListener('mouseup', () => {
 wcv.addEventListener('mouseleave', () => { whover = null; $('worldTip').classList.add('hidden'); wredraw(); });
 wcv.addEventListener('wheel', e => {
   e.preventDefault();
-  const f = Math.exp(-e.deltaY * 0.0015), nz = clamp(wcam.z * f, 0.3, 8);
+  const f = Math.exp(-e.deltaY * 0.0015), nz = clamp(wcam.z * f, 0.15, 8);
   wcam.x = e.offsetX - (e.offsetX - wcam.x) * nz / wcam.z; wcam.y = e.offsetY - (e.offsetY - wcam.y) * nz / wcam.z;
   wcam.z = nz; wredraw();
 }, { passive: false });
@@ -425,7 +438,7 @@ function updateWorldTip(e) {
   const sel = selectedSheets();
   if (sel.length && !wdrag) {
     const q = world.pos[sel[0].id], info = travelInfo(q, p);
-    html += `<br>🚶 ${info.km} km · <b>${fmtLevel(info.days)} jour${info.days > 1 ? 's' : ''}</b>${info.sea ? ' (en bateau)' : ''}<br><span class="muted">clic droit pour y aller</span>`;
+    html += `<br>🚶 ${info.km} km · <b>${Math.ceil(info.days)} jour(s)</b>${info.sea ? ' (en bateau)' : ''}<br><span class="muted">clic droit : préparer · Maj : ajouter une étape</span>`;
   }
   tip.innerHTML = html; tip.classList.remove('hidden');
   tip.style.left = Math.min(e.offsetX + 16, wcv.clientWidth - 240) + 'px'; tip.style.top = (e.offsetY + 16) + 'px';
@@ -452,6 +465,7 @@ function genBattle(l) {
 function openBattle(l, m) {
   pushUndo();
   map = normalizeMap(JSON.parse(JSON.stringify(l.battle))); map.locId = l.id;
+  reconcileEquipmentMap();
   syncMapUI(); setMode(m); fit(); changed();
 }
 // Appelé à chaque modification de la carte de combat : la copie du lieu lié est mise à jour
@@ -498,6 +512,7 @@ function enterWorld() {
 
 function renderWorldPanels() {
   if (!world) return;
+  renderAtlas();
   const o = world.opts;
   $('wName').value = world.name; $('wDay').textContent = world.day;
   $('wSeed').value = world.seed; $('wStyle').value = world.style;
@@ -512,14 +527,16 @@ function renderWorldPanels() {
 
 function renderLocList() {
   const q = norm($('wSearch').value || ''), ft = $('wFilter').value, el = $('wLocList'); el.replaceChildren();
-  world.locations.filter(l => (!ft || l.type === ft) && (!q || norm(l.name).includes(q)))
-    .sort((a, b) => Object.keys(LOC_TYPES).indexOf(a.type) - Object.keys(LOC_TYPES).indexOf(b.type) || a.name.localeCompare(b.name))
+  const found=world.locations.filter(l => atlasLocationMatches(l) && (!ft || l.type === ft) && (!q || norm(l.name).includes(q)));
+  if($('atlasLocCount'))$('atlasLocCount').textContent=`${found.length} / ${world.locations.length} lieux`;
+  found.sort(atlasSortLocations)
     .forEach(l => {
       const b = document.createElement('button'); b.className = 'loc-row' + (wsel.loc === l ? ' on' : '');
-      b.textContent = `${(LOC_TYPES[l.type] || LOC_TYPES.lieu).icon} ${l.name}${l.battle ? ' ⚔' : ''}`;
-      b.onclick = () => { wsel = { loc: l, ids: new Set() }; centerOn(l.x, l.y); renderWorldPanels(); };
+      b.textContent = `${l.favorite?'★ ':''}${(LOC_TYPES[l.type] || LOC_TYPES.lieu).icon} ${l.name}${l.visited?' ✓':''}${l.battle ? ' ⚔' : ''}`;
+      b.onclick = () => { wsel.loc=l; centerOn(l.x, l.y); renderWorldPanels(); };
       el.appendChild(b);
     });
+  if(!found.length)el.appendChild(h('p',{className:'muted',textContent:'Aucun lieu ne correspond aux filtres.'}));
 }
 
 function h(tag, props = {}, ...kids) {
@@ -554,7 +571,7 @@ function locPanel(l) {
   return h('div', {},
     h('div', { className: 'wl-head' }, h('span', { className: 'wl-icon', textContent: T.icon }),
       h('input', { id: 'wlName', type: 'text', value: l.name, on: { input: e => upd('name', e.target.value) } })),
-    h('label', {}, 'Type', typeSel),
+    h('label', {}, 'Type', typeSel),atlasLocationControls(l),
     h('div', { className: 'wl-facts' },
       reg ? h('div', {}, '👑 ', h('b', { textContent: reg.name })) : null,
       h('div', { textContent: `🌿 ${b.name} · climat ${tempLabel(WT.t.temp[wIdx(l.x, l.y)])}` }),
@@ -563,12 +580,13 @@ function locPanel(l) {
     h('textarea', { rows: 4, value: l.desc || '', on: { input: e => upd('desc', e.target.value) } }),
     h('div', { className: 'muted', textContent: 'Notes du MJ (secrets, quêtes, PNJ...)' }),
     h('textarea', { rows: 3, value: l.notes || '', on: { input: e => upd('notes', e.target.value) } }),
+    notebookLocationPanel(l),
     h('h2', { textContent: `Ici (${here.length})` }),
     here.length ? h('div', { className: 'here' }, here.map(s => h('button', { className: 'here-tok', title: s.name,
       on: { click: () => { wsel = { loc: null, ids: new Set([s.id]) }; renderWorldPanels(); wredraw(); } } }, spriteIcon(s.sprite, 28), s.name)))
       : h('p', { className: 'muted', textContent: 'Personne pour l\'instant.' }),
     h('button', { className: 'wide-btn', disabled: !nSel, textContent: nSel ? `🚶 Envoyer la sélection ici (${nSel})` : '🚶 Sélectionne des personnages pour les envoyer ici',
-      on: { click: () => { const l2 = l; travelTo({ x: l2.x, y: l2.y }, l2); } } }),
+      on: { click: () => planWorldStop(l,l,false) } }),
     h('h2', { textContent: '⚔ Carte de combat' }), battle,
     shopSection(l),
     h('button', { className: 'wide-btn danger', style: 'margin-top:14px', textContent: '🗑 Supprimer ce lieu',
@@ -590,7 +608,7 @@ function charPanel(list) {
   return h('div', {},
     h('h2', { textContent: list.length > 1 ? `Groupe sélectionné (${list.length})` : 'Personnage' }),
     rows,
-    h('p', { className: 'muted', textContent: 'Clic droit sur la carte ou sur un lieu pour voyager. Maj+clic pour ajouter un personnage au groupe. Glisser pour déplacer librement.' }));
+    h('p', { className: 'muted', textContent: 'Clic droit pour préparer un trajet, puis « Partir » dans le carnet de route. Maj+clic droit ajoute une étape. Glisser déplace librement les figurines.' }));
 }
 
 function worldInfoPanel() {
@@ -625,19 +643,8 @@ function worldInfoPanel() {
 // ---------- Boutons du panneau gauche ----------
 $('wName').addEventListener('input', e => { world.name = e.target.value; saveWorld(); });
 $('wNext').onclick = () => { world.day++; world.journal.unshift({ day: world.day, text: 'Une journée passe.' }); saveWorld(); renderWorldPanels(); };
-$('wRest').onclick = () => {
-  const heroes = sheets.filter(s => s.camp !== 'monster' && !s.dead);
-  heroes.forEach(longRest);
-  saveSheets(); world.day++;
-  world.journal.unshift({ day: world.day, text: `🛏 Repos long : ${heroes.map(s => s.name).join(', ')} récupèrent leurs PV, leurs capacités et des dés de vie.` });
-  saveWorld(); renderWorldPanels();
-};
-$('wShort').onclick = () => {
-  const heroes = sheets.filter(s => s.camp !== 'monster' && !s.dead), txt = heroes.map(shortRest).join(' · ');
-  saveSheets();
-  world.journal.unshift({ day: world.day, text: `☕ Repos court : ${txt}` });
-  saveWorld(); renderWorldPanels();
-};
+$('wRest').onclick = () => {openExpedition();$('expeditionLong').focus();};
+$('wShort').onclick = () => {openExpedition();$('expeditionShort').focus();};
 $('wGen').onclick = () => {
   if (!confirm('Générer un nouveau monde ? Les lieux, les cartes de combat liées et le journal de voyage seront remplacés (les fiches sont conservées).')) return;
   const keepScale = world.scale;
@@ -670,7 +677,7 @@ $('wFit').onclick = fitWorld;
 // ---------- Campagne complète (monde + fiches + carte de combat + caractéristiques) ----------
 $('wExport').onclick = () => {
   let stats = null; try { stats = localStorage.getItem('jdr-stats'); } catch (e) {}
-  const data = { app: 'jdr-mapping', version: 2, date: new Date().toISOString(), world, sheets, map, stats };
+  const data = { app: 'jdr-mapping', version: 4, date: new Date().toISOString(), world, sheets, map, stats, equipment:equipmentState, gm:campaignGmData() };
   const url = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' }));
   download(`campagne-${norm(world.name).replace(/[^a-z0-9]+/g, '-')}.json`, url); setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
@@ -679,11 +686,18 @@ $('campIn').onchange = async e => {
   const f = e.target.files[0]; if (!f) return;
   try {
     const d = JSON.parse(await f.text());
-    if (d.app !== 'jdr-mapping' || !d.world) throw 0;
-    if (!confirm(`Charger la campagne « ${d.world.name} » ? Le monde, les fiches et la carte actuels seront remplacés.`)) return;
-    world = d.world; world.opts ||= {}; sheets = d.sheets || []; saveSheets(); saveWorld(true);
+    if (d.app !== 'jdr-mapping' || !d.world || !Array.isArray(d.world.locations) || !Array.isArray(d.world.regions) || (d.sheets!=null&&!Array.isArray(d.sheets))) throw 0;
+    const quests=normalizeQuests(d.world.quests);
+    const gm={notebook:normalizeNotebook(d.gm?.notebook),history:normalizeGmHistory(d.gm?.history),notes:nbText(d.gm?.notes,1000000)};
+    if (!confirm(`Charger la campagne « ${d.world.name} » ? Le monde, les fiches, la carte et le carnet du MJ actuels seront remplacés.`)) return;
+    world = d.world; world.opts ||= {}; sheets = d.sheets || []; sheets.forEach(ensureEquipment);
+    world.quests=quests;
+    restoreCampaignGm(gm);
+    equipmentState=normalizeEquipmentState(d.equipment);saveEquipment();saveSheets(); saveWorld(true);
     if (d.map) { map = normalizeMap(d.map); syncMapUI(); changed(); }
     if (d.stats) { try { localStorage.setItem('jdr-stats', d.stats); } catch (err) {} loadStats(d.stats, 'campagne'); }
+    reconcileEquipmentMap();
+    undoStack.length=0;redoStack.length=0;syncHistoryUI();
     buildWorldCache(); wsel = { loc: null, ids: new Set() }; curSheet = null;
     ensurePositions(); renderWorldPanels(); fitWorld();
   } catch { alert('Fichier de campagne invalide'); }

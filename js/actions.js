@@ -60,7 +60,7 @@ const usesLeft = (u, k) => { if (!u.uses || u.uses[k] === undefined) resetUses(u
 let actionMode = null;   // capacité en attente d'une cible
 const cellDist = (ax, ay, bx, by) => Math.max(Math.abs(ax - bx), Math.abs(ay - by));
 const unitCenter = u => ({ x: u.x + (u.size - 1) / 2, y: u.y + (u.size - 1) / 2 });
-const saveDC = (a, act) => act.dd ?? 8 + (a.toucher || 5);
+const saveDC = (a, act) => act.dd ?? 8 + (a.spellToucher ?? a.toucher ?? 5);
 // Figurines touchées par une zone centrée sur (cx, cy)
 const inArea = (cx, cy, r) => map.units.filter(o => !isKO(o) && (() => {
   for (let y = o.y; y < o.y + o.size; y++) for (let x = o.x; x < o.x + o.size; x++) if (Math.hypot(x - cx, y - cy) <= r + 0.5) return true;
@@ -87,6 +87,7 @@ function useStd(u, k) {
 // ---------- Lancer une capacité ----------
 // scroll : objet (parchemin) utilisé à la place d'une utilisation
 function useAction(u, k, scroll = null) {
+  if(enforce()&&map.turn>0&&activeUnit()!==u){popText(u,'Attends ton tour.','#ff9a8a',13);return;}
   const act = ACTIONS[k]; if (!act || isKO(u) || (!scroll && usesLeft(u, k) <= 0)) return;
   if (act.type === 'self_heal' || act.type === 'self_buff') return resolveAction(u, k, { unit: u }, scroll);
   actionMode = { u, k, scroll }; attackMode = false;
@@ -123,13 +124,16 @@ function actionTarget(p, u = actionMode.u, k = actionMode.k) {
 }
 
 function resolveAction(u, k, tg, scroll = null) {
+  if(enforce()&&map.turn>0&&activeUnit()!==u)return false;
   const act = ACTIONS[k];
+  if (scroll && !(scroll.startsWith('gear:') ? gearPowerAvailable(u,scroll) : itemCount(u,scroll)>0)) return false;
+  if (act.type === 'attack' && gearAttackReady(u)) return false;
   if (!scroll && usesLeft(u, k) <= 0) return false;
-  if (act.type === 'attack' ? !useAttack(u) : !spend(u, act.cost)) return false;   // l'attaque sournoise est une attaque d'arme
   pushUndo();
-  if (scroll) u.items[scroll]--; else u.uses[k]--;
+  if (map.turn>0 && (act.type === 'attack' ? !(u.gearCombat?.off?spend(u,'bonus'):useAttack(u)) : !spend(u, act.cost))) return false;
+  if (scroll) consumeActionResource(u,scroll); else u.uses[k]--;
   if (u.hidden) { u.hidden = false; addLog(`🙈 ${u.name} sort de sa cachette !`, 'cond'); }
-  const tag = `${act.icon} ${u.name} : ${act.name}${scroll ? ' (parchemin)' : ''}`;
+  const tag = `${act.icon} ${u.name} : ${act.name}${scroll ? (scroll.startsWith('gear:')?' (objet magique)':' (parchemin)') : ''}`;
   if (act.sound) sfx(act.sound);
   if (act.type === 'self_heal') {
     const r = rollDice(act.dice(u)); addLog(`${tag} ${r.detail}`, 'heal'); areaFx(u, unitCenter(u), 0.6, 'heal', '#5be37a'); heal(u, r.total);

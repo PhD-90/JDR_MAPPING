@@ -111,13 +111,18 @@ class QuietHandler(http.server.SimpleHTTPRequestHandler):
         pass
 
 
+class CaptureServer(http.server.ThreadingHTTPServer):
+    # Edge opens many parallel script requests; the Windows default backlog is too small.
+    request_queue_size = 128
+
+
 def run_browser(capture):
     edge = Path(os.environ.get('PROGRAMFILES(X86)', 'C:/Program Files (x86)')) / 'Microsoft/Edge/Application/msedge.exe'
     if not edge.exists():
         raise RuntimeError('Microsoft Edge was not found')
     WORK.mkdir(parents=True, exist_ok=True)
     profile = Path(tempfile.mkdtemp(prefix='edge-profile-', dir=WORK))
-    server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), functools.partial(QuietHandler, directory=str(ROOT)))
+    server = CaptureServer(('127.0.0.1', 0), functools.partial(QuietHandler, directory=str(ROOT)))
     threading.Thread(target=server.serve_forever, daemon=True).start()
     cdp = None
     with (WORK / 'edge.log').open('w', encoding='utf-8') as log:
@@ -129,21 +134,32 @@ def run_browser(capture):
         try:
             portfile = profile / 'DevToolsActivePort'
             for _ in range(100):
-                if portfile.exists():
+                try:
+                    # Edge can briefly lock the file while publishing the port on Windows.
+                    port = int(portfile.read_text().splitlines()[0])
                     break
+                except (OSError, ValueError, IndexError):
+                    if proc.poll() is not None:
+                        raise RuntimeError('Edge stopped before opening its DevTools port')
                 time.sleep(.2)
-            port = int(portfile.read_text().splitlines()[0])
+            else:
+                raise TimeoutError('Edge did not publish its DevTools port within 20 seconds')
             pages = json.load(urllib.request.urlopen(f'http://127.0.0.1:{port}/json/list'))
             cdp = CDP(next(p['webSocketDebuggerUrl'] for p in pages if p['type'] == 'page'))
             cdp.call('Page.enable')
             cdp.call('Emulation.setDeviceMetricsOverride', width=WIDTH, height=HEIGHT, deviceScaleFactor=1, mobile=False)
-            cdp.call('Page.addScriptToEvaluateOnNewDocument', source="window.mediaErrors=[]; addEventListener('error',e=>mediaErrors.push(e.message)); addEventListener('unhandledrejection',e=>mediaErrors.push(String(e.reason))); ")
+            cdp.call('Page.addScriptToEvaluateOnNewDocument', source="window.mediaErrors=[]; addEventListener('error',e=>mediaErrors.push(e.message||('Resource failed: '+(e.target.src||e.target.href||e.target.tagName))),true); addEventListener('unhandledrejection',e=>mediaErrors.push(String(e.reason))); ")
             base = f'http://127.0.0.1:{server.server_port}/index.html'
             cdp.call('Page.navigate', url=base)
             for _ in range(100):
                 if cdp.js("document.readyState==='complete' && typeof draw==='function'"):
                     break
                 time.sleep(.1)
+            else:
+                raise TimeoutError('Application did not finish loading')
+            errors = cdp.js('mediaErrors')
+            if errors:
+                raise RuntimeError('Application startup errors: ' + json.dumps(errors, ensure_ascii=False))
             capture(cdp, base)
         finally:
             if cdp:

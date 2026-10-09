@@ -16,6 +16,7 @@ function newMap(cols, rows) {
 }
 // Complète une carte enregistrée par une version précédente
 function normalizeMap(m) {
+  if(m.encounterPlans)m.encounterPlans=normalizeEncounterPlans(m.encounterPlans);
   if (!m.height || m.height.length !== m.cols*m.rows) m.height = Array(m.cols*m.rows).fill(0);
   if (!m.units) m.units = [];
   if (m.turn === undefined) m.turn = 0;   // 0 = préparation, 1+ = round de combat

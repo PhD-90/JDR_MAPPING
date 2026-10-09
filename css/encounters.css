@@ -1,0 +1,27 @@
+.enc-toolbar,.enc-wave-tabs { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:10px 0 16px; }
+.enc-toolbar input[type=search] { flex:1; min-width:130px; }
+.enc-party,.enc-catalog,.enc-placement { margin:16px 0; padding:12px; border:1px solid #ab8b596b; border-radius:3px; }
+.enc-party summary,.enc-catalog summary,.enc-placement summary { cursor:pointer; font-weight:600; color:#743828; }
+.enc-party[open] summary,.enc-catalog[open] summary,.enc-placement[open] summary { margin-bottom:12px; }
+.enc-budget { padding:14px; background:#c9b18026; border:1px solid #a7865266; border-left:3px solid #83422f; margin:12px 0; }
+.enc-budget-head { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; }
+.enc-budget-head strong { font:700 20px var(--title-font); color:#743828; }
+.enc-budget p { margin:7px 0; font-size:12px; }
+.enc-thresholds { display:flex; gap:5px; flex-wrap:wrap; }
+.enc-thresholds span { padding:4px 7px; background:#d0bc9560; font-size:11px; border:1px solid transparent; }
+.enc-thresholds .on { border-color:#83422f; background:#e0c2a0; font-weight:600; }
+.enc-monster-row { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid #ab8b5944; }
+.enc-monster-name { flex:1; min-width:0; overflow-wrap:anywhere; }
+.enc-monster-name strong,.enc-monster-name small { display:block; }
+.enc-monster-name small { color:var(--mut); font-size:11px; margin-top:3px; }
+.enc-monster-row input { width:54px; }
+.enc-monster-row canvas,.enc-catalog-item canvas { flex-shrink:0; image-rendering:pixelated; }
+#encCatalog { display:grid; grid-template-columns:repeat(auto-fill,minmax(145px,1fr)); gap:6px; max-height:270px; overflow-y:auto; padding:2px; }
+.enc-catalog-item { display:grid; grid-template-columns:32px minmax(0,1fr); text-align:left; align-items:center; gap:0 6px; padding:7px; }
+.enc-catalog-item canvas { grid-row:span 2; }.enc-catalog-item span { overflow-wrap:anywhere; }.enc-catalog-item small { opacity:.7; }
+#encPreview canvas { display:block; width:100%; max-width:520px; height:auto; border:1px solid #ab8b59; }
+#encPreview p { margin:8px 0; } .enc-feedback { color:#844131; font-weight:600; }
+.enc-tray-plan { margin:9px 0; padding:10px; border:1px solid #95734866; border-radius:3px; background:#d5a75808; }
+.enc-tray-plan>strong { display:block; margin-bottom:7px; color:#dfc69b; }
+.enc-tray-plan button { text-align:left; white-space:normal; }
+@media(max-width:700px) { .enc-monster-row { gap:6px; }.enc-placement,.enc-party,.enc-catalog { padding:8px; } }

@@ -15,7 +15,7 @@ $('fileIn').onchange = async e => {
   try {
     const m = JSON.parse(await f.text());
     if (!m.cols || !m.floor) throw 0;
-    pushUndo(); map = normalizeMap(m); select(null); playSel = null; syncPlayUI(); syncMapUI(); fit(); changed();
+    pushUndo(); map = normalizeMap(m); reconcileEquipmentMap(); select(null); playSel = null; syncPlayUI(); syncMapUI(); fit(); changed();
   } catch { alert('Fichier invalide'); }
   e.target.value = '';
 };

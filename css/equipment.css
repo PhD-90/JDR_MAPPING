@@ -1,0 +1,46 @@
+/* Feuillets d'équipement et instruments de l'atlas. */
+#equipmentPanel { margin:28px 0; padding:22px; border:1px solid #a98651; border-radius:8px; background:linear-gradient(135deg,#fff4d940,#b4905720); }
+.gear-heading,.gear-toolbar,.gear-chest-row { display:flex; align-items:center; gap:10px; justify-content:space-between; flex-wrap:wrap; }
+.gear-heading h3 { margin:4px 0 12px; font-size:23px; }
+.gear-weight { padding:7px 12px; background:#765b2620; border:1px solid #97764270; border-radius:4px; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.gear-status { min-height:1.4em; margin:0 0 14px; font-size:13px; color:#694423; }
+.gear-board { display:grid; grid-template-columns:1fr 1.15fr 1fr; grid-template-rows:repeat(5,minmax(76px,auto)); gap:8px; margin:14px 0; }
+.gear-avatar { grid-column:2;grid-row:1/6;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:15px;background:radial-gradient(ellipse,#a88a4040,transparent 70%);border:1px solid #96774450;border-radius:45% 45% 6px 6px;min-width:0; }
+.gear-avatar canvas { image-rendering:pixelated;filter:drop-shadow(0 12px 8px #34251044);max-width:90%;height:auto; }
+.gear-avatar b {font-family:Georgia,serif;text-align:center;overflow-wrap:anywhere;}
+.gear-slot { border:1px solid #9c7e4f70;background:#fdf1d360;padding:8px;display:flex;flex-direction:column;gap:5px;min-width:0;border-radius:4px; }
+.gear-slot small {font-variant:small-caps;letter-spacing:.08em;color:#795124;font-size:12px;}
+.gear-slot>button:first-of-type { min-height:35px;text-align:left;white-space:normal;font-size:12px;overflow-wrap:anywhere; }
+.gear-slot .mini {align-self:flex-start;font-size:10px;padding:2px 7px;}
+.slot-head {grid-column:1;grid-row:1}.slot-neck {grid-column:3;grid-row:1}.slot-main {grid-column:1;grid-row:2}.slot-off {grid-column:3;grid-row:2}
+.slot-armor {grid-column:1;grid-row:3}.slot-cape {grid-column:3;grid-row:3}.slot-hands {grid-column:1;grid-row:4}.slot-feet {grid-column:3;grid-row:4}.slot-ring1 {grid-column:1;grid-row:5}.slot-ring2 {grid-column:3;grid-row:5}
+.gear-toolbar {justify-content:flex-start;margin:14px 0;}
+.gear-toolbar input[type=search] {flex:1;min-width:130px;}.gear-toolbar input[type=number]{max-width:100px;}
+.gear-inventory-layout {display:grid;grid-template-columns:minmax(0,1.25fr) minmax(210px,1fr);gap:14px;align-items:start;}
+.gear-inventory {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;max-height:470px;overflow:auto;padding:2px;}
+.gear-card {display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:5px;min-height:85px;padding:10px!important;white-space:normal;overflow-wrap:anywhere;border-left:3px solid #9b8b73!important;}
+.gear-card small {font-size:10px;opacity:.85;}.gear-card b {font-size:12px;}.gear-icon {font-size:19px;}
+.gear-card.rarity-uncommon{border-left-color:#3b8755!important}.gear-card.rarity-rare{border-left-color:#497eae!important}.gear-card.rarity-epic{border-left-color:#9b62b8!important}.gear-card.rarity-legendary{border-left-color:#cc8b32!important}
+.gear-detail {padding:14px;background:#f9edce80;border:1px solid #97703c70;border-radius:5px;overflow-wrap:anywhere;}
+.gear-detail h4 {font:700 19px Georgia,serif;margin:0 0 10px;color:#653025;}.gear-detail p{font-size:12px;line-height:1.6;}.gear-detail>button,.gear-detail>select{width:100%;margin-top:7px;}.gear-detail small{display:block;margin-top:8px;}
+.gear-compare {padding:10px;background:#c8b16b35;border-left:3px solid #957130;}
+.gear-warnings {font-size:12px;line-height:1.6;color:#874528;background:#ae753f12;padding:8px 12px;border-left:2px solid #ac743a;}
+#equipmentPanel details {margin-top:12px;padding:12px;border:1px solid #a4865655;border-radius:4px;}
+#equipmentPanel summary{cursor:pointer;font-weight:bold;font-family:Georgia,serif;}
+.gear-catalog,.market-results {display:grid;gap:5px;max-height:300px;overflow:auto;margin-top:10px;padding:2px;}.gear-catalog{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));}
+.gear-catalog button,.market-results button{text-align:left;white-space:normal;padding:8px;}
+.gear-form {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px;margin-top:12px;}.gear-form label{display:flex;flex-direction:column;align-items:stretch;gap:5px;}.gear-form input,.gear-form select{width:100%!important;}.gear-form input[type=checkbox]{width:auto!important;align-self:flex-start;}
+.gear-chest-row{padding:7px 0;border-bottom:1px solid #94764933;}.gear-chest-row span{flex:1;min-width:100px;}
+.combat-equipment {border:1px solid #8c713b66;background:#c5a15e0c;padding:9px;margin:10px 0;border-radius:4px;}.combat-equipment label{display:flex;flex-direction:column;align-items:stretch;gap:5px;}.combat-equipment p{font-size:11px;white-space:pre-line;}.combat-equipment .gear-warnings{color:#eac18d;}
+.equipment-shop input[type=search],.equipment-shop>select{width:100%;margin:5px 0;}.equipment-shop button:disabled{opacity:.5;}
+.atlas-toolbar {position:absolute;left:14px;top:14px;display:flex;align-items:center;gap:5px;padding:6px;background:#241b13ec;border:1px solid #b28b4f;border-radius:5px;box-shadow:0 4px 18px #0005;}
+.atlas-toolbar button{padding:6px 9px;font-size:12px;}.atlas-toolbar span{color:#d5bc87;font-size:11px;padding:0 5px;}
+#atlasMini {position:absolute;right:14px;bottom:48px;width:180px;height:120px;border:2px solid #a78243;background:#d4bb88;box-shadow:0 3px 15px #0007;border-radius:4px;cursor:crosshair;}
+#atlasMini:focus-visible {outline:3px solid #e4bf70;outline-offset:3px;}
+.atlas-panel {margin:10px 0 14px;border-top:1px solid #94713e55;border-bottom:1px solid #94713e55;padding:10px 0;}
+.atlas-party {display:flex;flex-direction:column;gap:6px;}.atlas-party b{color:#e2c493;font-family:Georgia,serif;}.atlas-party span{font-size:11px;color:#bda780;}
+.atlas-filters {display:flex;gap:5px;}.atlas-filters select{min-width:0;flex:1;font-size:11px;}
+.atlas-leg {display:grid;grid-template-columns:1fr auto auto;gap:4px;margin:7px 0;padding-bottom:7px;border-bottom:1px solid #91734044;}.atlas-leg>button:first-child{grid-column:1/4;text-align:left;white-space:normal;font-size:12px;}.atlas-leg small{align-self:center;font-size:10px;color:#d7bc91;}
+.atlas-total{font-size:12px;font-weight:bold;color:#e8c687;}.atlas-panel .gear-warnings{color:#e4b784;}.atlas-location-controls {display:flex;flex-wrap:wrap;gap:5px;margin:10px 0;}.atlas-location-controls button{flex:1;min-width:100px;font-size:11px;}
+@media(max-width:1100px){.gear-inventory-layout{grid-template-columns:1fr;}.gear-detail{max-height:none}.gear-board{grid-template-columns:1fr .7fr 1fr}.gear-avatar canvas{width:75px}.gear-avatar span{font-size:11px;text-align:center}.gear-form{grid-template-columns:1fr}.atlas-toolbar span{display:none}#atlasMini{width:130px;height:87px}}
+@media(max-width:760px){#equipmentPanel{padding:12px}.gear-board{grid-template-columns:1fr 1fr;grid-template-rows:auto}.gear-avatar{grid-column:1/3;grid-row:auto;padding:12px;flex-direction:row;border-radius:5px}.gear-avatar canvas{width:48px}.gear-slot{grid-column:auto;grid-row:auto}.gear-heading h3{font-size:20px}.atlas-toolbar{left:7px;top:7px;padding:3px}.atlas-toolbar button{font-size:10px;padding:5px}#atlasMini{width:100px;height:67px;right:7px;bottom:60px}}

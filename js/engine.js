@@ -22,7 +22,7 @@ const AB_NAME = { for: 'FOR', dex: 'DEX', con: 'CON', int: 'INT', sag: 'SAG', ch
 const SAVE_PROF = { guerrier: ['for', 'con'], barbare: ['for', 'con'], paladin: ['sag', 'cha'], rodeur: ['for', 'dex'],
                     voleur: ['dex', 'int'], mage: ['int', 'sag'], clerc: ['sag', 'cha'] };
 const abMod = (u, k) => abilityMod((u.ab || {})[k] ?? 10);
-const saveBonus = (u, k) => abMod(u, k) + ((u.saveProf || []).includes(k) ? (u.prof || 2) : 0);
+const saveBonus = (u, k) => abMod(u, k) + ((u.saveProf || []).includes(k) ? (u.prof || 2) : 0) + (u.saveGear || 0);
 // Jet de sauvegarde ; étourdi ou inconscient : échec automatique en FOR et DEX
 function rollSave(u, k, dd, adv = 0) {
   const a = rollDie(20), b = rollDie(20), d = adv > 0 ? Math.max(a, b) : adv < 0 ? Math.min(a, b) : a;

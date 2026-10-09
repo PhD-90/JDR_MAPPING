@@ -10,6 +10,14 @@ var mediaScenes = [
   { name:'monde-lieu', title:'Chaque lieu raconte une histoire', subtitle:'Notes, habitants et carte de combat liée au lieu.' },
   { name:'voyage-evenements', title:'L’aventure entre deux rencontres', subtitle:'Voyages, vivres, calendrier et journal des événements.' },
   { name:'monde-parchemin', title:'', subtitle:'' },
+  { name:'atlas', title:'Préparer la route', subtitle:'Itinéraires à étapes, favoris et suivi du groupe.' },
+  { name:'expedition', title:'Le camp des aventuriers', subtitle:'Provisions, allures de voyage et repos du groupe.' },
+  { name:'equipement', title:'Équiper les aventuriers', subtitle:'Armes, armures, objets magiques et effets réels en combat.' },
+  { name:'inventaire', title:'', subtitle:'' },
+  { name:'carnet', title:'Le carnet de campagne', subtitle:'Préparer les séances et conserver leurs objectifs et récits.' },
+  ...['carnet-pnj','carnet-quetes'].map(name=>({name,title:'',subtitle:''})),
+  { name:'rencontres-preparees', title:'Préparer les rencontres', subtitle:'Bibliothèque d’adversaires, difficulté et vagues de renforts.' },
+  { name:'renforts', title:'Faire entrer les renforts', subtitle:'Déployer chaque vague au moment choisi pendant le combat.' },
   { name:'editeur', title:'L’atelier du cartographe', subtitle:'Sols naturels, décors et relief sur la table de jeu.' },
   { name:'modules', title:'Construire une salle en un geste', subtitle:'Aperçu des murs et de l’entrée avant de relâcher.', animated:true },
   { name:'riviere', title:'Dessiner une rivière', subtitle:'Un tracé continu, de l’eau et des berges de sable.', animated:true },
@@ -45,6 +53,7 @@ var mediaAttackGroups = {
 };
 
 function mediaReset() {
+  $('expeditionDialog')?.close();
   mediaQueue = []; mediaClock = 50000; mediaStart = mediaClock;
   soundOn = false; syncSoundBtn(); autoMonsters = false; autoHeroes = false; aiPaused = true; rulesMode = false;
   clearTimeout(aiTimer); anims = []; pops = []; areaList = [];
@@ -54,6 +63,8 @@ function mediaReset() {
   hover = null; drag = null; zoneMode = 'sel';
   sheets = exampleSheets(); sheets.forEach(s => { s.level = 3; s.gold = 45; s.items = { potion:2, ration:20, torche:3 }; });
   saveSheets(); curSheet = null;
+  gmSection='generators';notebook=normalizeNotebook(null);nbSelected={};nbQuery='';nbArchives=false;
+  encounterWaveId='';encounterMonsterQuery='';encounterSize='';encounterMessage='';
   document.querySelectorAll('aside, #sheetMain, #gmMain').forEach(el => el.scrollTop = 0);
   Math.random = mulberry32(76133); seedRng(13579);
 }
@@ -129,6 +140,25 @@ function mediaGm() {
   $('gmNotes').value='La route des Brumes\n\nLe groupe quitte la capitale au lever du jour.\n\n• Retrouver la caravane disparue.\n• Interroger les voyageurs à l’auberge.\n• Explorer les ruines au nord de la forêt.\n\nProchaine séance : les portes du vieux donjon.';
 }
 
+function mediaNotebook(name) {
+  mediaWorld();world.day=12;
+  const loc=world.locations.find(l=>l.type==='ruines')||world.locations[0];loc.name='Les ruines de Valbrume';
+  const npc=createNotebookRecord('npcs',{name:'Éléonore de Valbrume',role:'Cartographe et exploratrice',faction:'Guilde de la Boussole',attitude:'friendly',locId:loc.id,
+    description:'Une cape couleur mousse, des doigts tachés d’encre et un étui rempli de cartes.\nElle cherche à retrouver la route oubliée du col des Trois Rois.',
+    secret:'Sa dernière carte indique un passage sous les ruines. Elle tait le nom de son commanditaire.'});
+  createNotebookRecord('npcs',{name:'Borin Main-de-Fer',role:'Forgeron',faction:'Compagnie du Pont',attitude:'ally'});
+  const quest=createNotebookRecord('quests',{title:'Les sceaux du vieux pont',text:'La cartographe a retrouvé la trace de deux sceaux anciens. Réunissez-les pour ouvrir le passage sous Valbrume.',locId:loc.id,npcId:npc.id,dueDay:15,rewardGold:250,rewardXP:100,reward:'Un accès aux archives de la Guilde',
+    objectives:[{text:'Interroger Éléonore à l’auberge',done:true},{text:'Retrouver le sceau dans la tour effondrée',done:false},{text:'Ouvrir le passage sous le pont',done:false}]});
+  const session=createNotebookRecord('sessions',{title:'La route des Brumes',date:'2026-10-16',day:12,status:'planned',locId:loc.id,
+    prep:'Ouverture : le groupe arrive à Valbrume sous la pluie.\nÉléonore attend à l’auberge avec une carte incomplète.\nRencontre possible : deux sentinelles gardent le vieux pont.',
+    goals:[{text:'Préparer la battlemap des ruines',done:true},{text:'Présenter la cartographe et sa carte',done:false},{text:'Donner un indice sur le deuxième sceau',done:false}],
+    next:'L’entrée des catacombes et le secret de la Guilde.'});
+  createNotebookRecord('sessions',{title:'Le marché aux lanternes',date:'2026-10-09',day:9,status:'done',recap:'Le groupe a reçu une mission de la Guilde et s’est équipé avant le départ.'});
+  openNotebook(name==='carnet-pnj'?'npcs':name==='carnet-quetes'?'quests':'sessions',name==='carnet-pnj'?npc.id:name==='carnet-quetes'?quest.id:session.id);
+  $('gmNotes').value='À garder sous la main\n\nJour 12 · Arrivée à Valbrume\n\n• Le pont porte le symbole des Trois Rois.\n• Éléonore reconnaît le médaillon du groupe.\n• La tempête arrive au jour 15.\n\nAprès la séance : compléter le récapitulatif du carnet.';
+  mediaScroll('#gmNotebook','gmMain',16);
+}
+
 function mediaFog() {
   mediaBattle(false); map.fogOn=true; map.fogRadius=5; map.fogAuto=true; ensureFog();
   mediaUnits.enemy3.hidden=true;
@@ -152,7 +182,31 @@ function mediaMonsterDuel(key) {
 
 async function prepareMediaScene(name) {
   mediaCurrent=name; mediaReset();
-  if(mediaAttackGroups[name]) {
+  if(name==='rencontres-preparees'||name==='renforts') {
+    mediaBattle(false);map.units=map.units.filter(u=>unitKind(u)==='hero');invalidateZones();
+    const r=createNotebookRecord('encounters',{title:'Embuscade au vieux pont',notes:'Les guetteurs appellent leur chef au son du cor. Faire entrer les renforts au deuxième round.',side:'east',
+      waves:[{name:'Les guetteurs',counts:{goblin:2,kobold:2}},{name:'Le chef et ses loups',counts:{ogre:1,wolf:2}}]});
+    createNotebookRecord('encounters',{title:'La crypte oubliée',env:'dungeon',counts:{skeleton:3,ghoul:1}});
+    openNotebook('encounters',r.id);
+    $('gmNotes').value='L’embuscade du vieux pont\n\nVague 1 : les guetteurs tentent d’arrêter le groupe.\n\nVague 2 : le chef arrive avec ses loups quand le cor retentit.\n\nUne négociation reste possible si les héros offrent des provisions.';
+    if(name==='rencontres-preparees')mediaScroll('.enc-wave-tabs','gmMain',55);
+    else {deployEncounterWave(r,r.waves[0]);startCombat();aiPaused=true;syncPlayUI();fit();draw();}
+  } else if(name.startsWith('carnet')) {
+    mediaNotebook(name);
+  } else if(name==='equipement'||name==='inventaire') {
+    const s=sheets[0];ensureEquipment(s);s.gold=750;
+    ['sword_1','protection_cloak','healing_amulet','swift_boots','dagger','longbow'].forEach(k=>s.gear.push(makeGear(k)));
+    const cloak=s.gear.find(g=>g.key==='protection_cloak');cloak.attuned=true;s.equipment.cape=cloak.id;
+    gearSelection=s.gear.find(g=>g.key==='sword_1').id;setMode('chars');openSheet(s.id);
+    $(name==='equipement'?'equipmentPanel':'gearInventory').scrollIntoView({block:'start'});
+  } else if(name==='expedition') {
+    mediaWorld();atlasGroup();equipmentState.chest.items.ration=18;
+    sheets.filter(s=>s.camp!=='monster').forEach((s,i)=>{s.items.ration=i*2;s.hpCur=Math.max(1,+sheetDerived(s).val.pv-i*5);s.hd=Math.max(0,s.level-i);});
+    openExpedition();expeditionDays=5;renderExpedition();
+  } else if(name==='atlas') {
+    mediaWorld();atlasGroup();const p=atlasCenter(),locs=[...world.locations].sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y));
+    locs[1].favorite=true;locs[0].visited=true;planWorldStop(locs[1],locs[1],false);planWorldStop(locs[3],locs[3]);wsel.loc=locs[1];renderWorldPanels();fitWorld();drawWorld();
+  } else if(mediaAttackGroups[name]) {
     mediaMonsterDuel(mediaAttackGroups[name][0]); mediaAdvance(800);
   } else if(name.startsWith('monde') || name==='voyage-evenements') {
     mediaWorld();
