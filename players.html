@@ -8,8 +8,17 @@
 </head>
 <body>
   <header><span class="seal" aria-hidden="true">◇</span><div><small>La table des aventuriers</small><h1 id="sceneTitle">En attente du maître du jeu</h1></div></header>
+  <section id="combatHud" aria-label="Suivi du combat" hidden>
+    <div class="combat-focus">
+      <span id="combatRound" class="round-badge"></span>
+      <div class="combat-turn" role="status" aria-live="polite"><strong id="combatTurn"></strong><span id="combatNext"></span></div>
+      <span id="combatPhase" class="phase-badge"></span>
+    </div>
+    <p id="initiativeLabel">Ordre d’initiative · figurines visibles</p>
+    <ol id="combatInitiative" aria-labelledby="initiativeLabel" tabindex="0"></ol>
+  </section>
   <main><canvas id="projection" aria-label="Carte partagée par le maître du jeu"></canvas>
-    <div id="curtain"><span aria-hidden="true">✧</span><p id="curtainText">Ouvre cet écran depuis le bouton « Écran des joueurs » du grimoire.</p></div>
+    <div id="curtain"><span aria-hidden="true">✧</span><p id="curtainText">Dans le grimoire MJ, ouvre « Jouer la carte » puis « Afficher le combat aux joueurs », ou ouvre l’écran des joueurs depuis « Monde ».</p></div>
   </main>
   <footer><span id="connection" role="status">En attente de connexion</span><nav aria-label="Affichage"><button id="fit">Recentrer (F)</button><button id="fullscreen">Plein écran</button></nav></footer>
   <script src="js/player-view.js"></script>

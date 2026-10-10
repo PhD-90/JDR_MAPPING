@@ -465,6 +465,7 @@ function syncCombatUI() {
   $('turnLabel').innerHTML = fighting ? `Round <b>${map.turn}</b>` : '<b>Préparation</b>';
   $('turnWho').textContent = fighting && act ? `Tour de ${act.name}` : fighting ? '' : 'Place les figurines puis lance le combat';
   $('btnStartCombat').classList.toggle('hidden', fighting);
+  $('btnStartPlayers').classList.toggle('hidden', fighting);
   $('btnNextTurn').classList.toggle('hidden', !fighting);
   $('combatCtl').classList.toggle('hidden', !fighting);
   $('autoRoll').checked = autoRoll;

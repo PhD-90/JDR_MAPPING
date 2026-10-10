@@ -65,6 +65,16 @@ CHECKS = r"""
  assert(pixel[0]===7&&pixel[1]===8&&pixel[2]===11,'Animation coupée par le brouillard opaque');drawAreaFx=effect;areaList=[];
  const dimensions={cam:{...cam},mode,previewPlayers,curZones};renderPlayerFrame();assert(cam.x===dimensions.cam.x&&cam.z===dimensions.cam.z&&mode===dimensions.mode&&previewPlayers===dimensions.previewPlayers&&curZones===dimensions.curZones,'État MJ restauré');
  map.turn=1;map.order=[hidden.id];map.active=0;assert(!playerBattleTitle().includes('SECRET'),'Tour caché sans nom');map.turn=0;map.order=[];
+ let publicInfo=publicCombatInfo();
+ assert(publicInfo.units.length===2&&!JSON.stringify(publicInfo).includes('SECRET'),'Résumé limité aux figurines visibles');
+ const enemy=publicInfo.units.find(u=>!u.hero);
+ assert(!('hp' in enemy)&&!('hpMax' in enemy)&&!('id' in enemy)&&!('initRoll' in enemy),'Aucune statistique ennemie ni identifiant privé');
+ const safe=JSON.stringify(publicInfo);mob.hp=2;mob.ca=999;mob.initRoll=99;hidden.x=9;
+ assert(JSON.stringify(publicCombatInfo())===safe,'Statistiques ennemies et figurines cachées sans effet sur le résumé');
+ map.turn=1;map.order=[hero.id,hidden.id,mob.id,fogUnit.id];map.active=0;
+ publicInfo=publicCombatInfo();assert(publicInfo.next===''&&publicInfo.units[0].active,'Prochain tour secret non annoncé');
+ map.active=1;assert(!JSON.stringify(publicCombatInfo()).includes('SECRET'),'Tour actif secret sans nom ni portrait');
+ map.turn=0;map.order=[];
  setMode('world');saveWorld(true);saveSheets();changed();
  assert(!mediaErrors.length,mediaErrors.join('\n'));
  return ['24 décors distincts, franchissables, rotation, recherche, filtres, export/import','Trois dispersions de petits décors','Monde et combat : informations privées absentes du rendu, état MJ inchangé'];
@@ -72,8 +82,9 @@ CHECKS = r"""
 """
 
 
-def popup(cdp):
-    cdp.call('Runtime.evaluate', expression='openPlayerScreen()', userGesture=True)
+def popup(cdp, expression='openPlayerScreen()'):
+    evaluation=cdp.call('Runtime.evaluate', expression=expression, userGesture=True)
+    assert not evaluation.get('exceptionDetails'),evaluation
     port=cdp.sock.getpeername()[1]
     for _ in range(60):
         pages=json.load(urllib.request.urlopen(f'http://127.0.0.1:{port}/json/list'))
@@ -83,7 +94,7 @@ def popup(cdp):
             wait(viewer,"typeof picture!=='undefined' && !!picture")
             return viewer
         time.sleep(.1)
-    raise AssertionError('Player popup did not open')
+    raise AssertionError('Player popup did not open: '+json.dumps(cdp.js("({mode,turn:map.turn,closed:playerWindow?.closed,errors:mediaErrors})")))
 
 
 def check(cdp, base):
@@ -98,24 +109,53 @@ def check(cdp, base):
     cdp.js("world.day=12;saveWorld(true)")
     wait(viewer,"title.textContent.includes('Jour 12')")
     viewer.screenshot().save(WORK/'players-world.png')
-    cdp.js("setMode('play');autoMonsters=false;autoHeroes=false;$('btnStartCombat').click()")
+    cdp.js("setMode('play');autoMonsters=false;autoHeroes=false")
+    cdp.call('Runtime.evaluate',expression="$('btnStartPlayers').click()",userGesture=True)
     wait(viewer,"title.textContent.includes('Round 1')")
     assert cdp.js("mode==='play' && map.turn===1 && !document.body.classList.contains('player-view')"),'MJ remains in control'
+    cdp.js("map.order=map.units.map(u=>u.id);map.active=0;beginTurn()")
+    wait(viewer,"!combatHud.hidden && document.getElementById('combatTurn').textContent.includes('Guerrier')")
+    assert viewer.js("initiative.children.length===2 && !combatHud.textContent.includes('SECRET') && !initiative.querySelector('.monster meter')"),'Public initiative and hero-only HP'
+    cdp.js("const hero=map.units[0];hero.hp=7;hero.hpMax=20;hero.conds=['poison'];changed()")
+    wait(viewer,"combatHud.textContent.includes('7 / 20 PV') && combatHud.textContent.includes('Empoisonné')")
+    cdp.js("$('btnNextTurn').click()")
+    wait(viewer,"document.getElementById('combatTurn').textContent.includes('Gobelin')")
     viewer.screenshot().save(WORK/'players-combat.png')
+    for width,height in [(1440,900),(760,800),(390,844)]:
+        viewer.call('Emulation.setDeviceMetricsOverride',width=width,height=height,deviceScaleFactor=1,mobile=False)
+        time.sleep(.1)
+        assert viewer.js("document.documentElement.scrollWidth<=innerWidth && screenCanvas.clientHeight>200"),'Combat screen usable at '+str(width)
+    viewer.call('Emulation.setDeviceMetricsOverride',width=1440,height=900,deviceScaleFactor=1,mobile=False)
     cdp.js("setMode('edit')")
     wait(viewer,"connection.textContent.includes('suspendue')")
+    frozen_hud=viewer.js('combatHud.textContent')
     frozen=viewer.js('lastImage');cdp.js("map.floor.fill('lava');changed()")
     time.sleep(.4);assert viewer.js('lastImage')==frozen,'Editor leaked into public frame'
+    assert viewer.js('combatHud.textContent')==frozen_hud,'Editor changed projected combat summary'
     cdp.js("document.querySelector('[data-player-curtain]').click()")
-    wait(viewer,"!curtain.hidden && picture===null")
+    wait(viewer,"!curtain.hidden && picture===null && combatHud.hidden && !initiative.children.length")
     cdp.js("setMode('world');document.querySelector('[data-player-curtain]').click()")
     wait(viewer,"curtain.hidden && title.textContent.includes('Nemaï')")
+    assert viewer.js('combatHud.hidden'),'World removes combat HUD'
     viewer.call('Page.reload');wait(viewer,"typeof picture!=='undefined' && !!picture")
     snapshot=cdp.js(store)
     viewer.js("document.getElementById('fit').click();dispatchEvent(new KeyboardEvent('keydown',{key:'Delete'}));dispatchEvent(new KeyboardEvent('keydown',{key:'Enter'}))")
     assert cdp.js(store)==snapshot,'Player keys changed saves'
     viewer.call('Page.close');viewer.sock.close()
+    wait(cdp,'playerWindow.closed')
     checks.append('Deux fenêtres réelles : synchronisation, transition monde/combat, préparation suspendue, rideau, rechargement et lecture seule')
+    cdp.js("setMode('play');resetCombat(false)")
+    viewer=popup(cdp,"$('btnStartPlayers').click()")
+    wait(viewer,"!combatHud.hidden && document.getElementById('combatRound').textContent==='Round 1'")
+    assert cdp.js("map.turn===1 && $('btnStartPlayers').classList.contains('hidden')"),'Start with players opens and starts combat once'
+    cdp.js("endCombat()")
+    wait(viewer,"document.getElementById('combatRound').textContent==='Préparation'")
+    viewer.call('Page.reload');wait(viewer,"typeof picture!=='undefined' && !!picture && !combatHud.hidden")
+    viewer.call('Page.close');viewer.sock.close()
+    wait(cdp,'playerWindow.closed')
+    # A blocked popup must not silently start the combat.
+    cdp.js("const originalOpen=window.open,originalAlert=window.alert;window.open=()=>null;window.alert=()=>{};startCombatWithPlayers();window.open=originalOpen;window.alert=originalAlert;if(map.turn)throw Error('Combat started with blocked popup');")
+    checks.append('Combat joueur : lancement en un clic, initiative publique, tours, PV, états, fin de combat et affichage de 390 à 1440 px')
     # Verify the supported direct-file workflow (including canvas serialization of Nemaï).
     cdp.call('Page.navigate',url=(ROOT/'index.html').as_uri())
     wait(cdp,"document.readyState==='complete' && typeof openPlayerScreen==='function'")

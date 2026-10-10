@@ -271,6 +271,13 @@
 
   <!-- ===== Jouer : panneau droit ===== -->
   <aside id="playRight" class="play-only">
+    <section class="player-combat-controls" aria-label="Projection du combat">
+      <h2>Écran joueur · Combat</h2>
+      <button id="btnPlayers" class="primary wide-btn">📺 Afficher le combat aux joueurs</button>
+      <button id="btnStartPlayers" class="wide-btn">⚔ Commencer avec les joueurs</button>
+      <label>Masquer l’écran <input type="checkbox" data-player-curtain></label>
+      <p class="muted" data-player-status role="status">Carte, tours et initiative dans une seconde fenêtre.</p>
+    </section>
     <div class="turn-bar">
       <div><span id="turnLabel"></span><div id="turnWho" class="muted"></div></div>
       <button id="btnStartCombat">⚔ Commencer le combat</button>
@@ -344,10 +351,6 @@
 
 
     <h2>Outils du MJ</h2>
-    <button id="btnPlayers" class="primary wide-btn">📺 Ouvrir l'écran des joueurs</button>
-    <label>Masquer l’écran <input type="checkbox" data-player-curtain></label>
-    <p class="muted" data-player-status role="status">Monde et combat dans la même fenêtre.</p>
-    <p class="muted">Sur la télé ou un 2ᵉ écran du même ordinateur : passage automatique du monde au combat. Brouillard opaque, figurines cachées et PV des monstres invisibles. Les onglets de préparation suspendent l’image.</p>
     <button id="btnSim" class="wide-btn">🧪 Simuler ce combat (IA contre IA)</button>
     <label>👁 Voir comme les joueurs <input id="previewPlayers" type="checkbox"></label>
     <label>🪤 Pièges et secrets automatiques <input id="autoTraps" type="checkbox"></label>

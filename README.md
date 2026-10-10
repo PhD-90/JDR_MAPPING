@@ -25,7 +25,8 @@ Nemaï conserve son illustration sur parchemin ; les mondes procéduraux propose
 **Atlas de campagne** : mini-carte, favoris, lieux visités et itinéraires à étapes avec estimation des vivres.
 **Nemaï** : la carte illustrée de référence, avec 35 lieux interactifs et une échelle de voyage calée sur son dessin.
 **Petits décors** : 24 accessoires, rotation, pose sur le mobilier et trois nouvelles dispersions.
-**Écran des joueurs** : le monde et les combats dans une fenêtre dédiée, avec plein écran, zoom et masquage des préparatifs.
+**Écran des joueurs** : le monde et les combats dans une fenêtre dédiée, avec plein écran, zoom, initiative visible,
+tour actif, PV des héros et masquage des préparatifs. Le combat se lance avec sa projection en un clic.
 **Camp des aventuriers** : état du groupe, répartition des provisions, allures de voyage et repos avec choix des dés de vie.
 **Carnet du MJ** : séances, PNJ, quêtes à objectifs et bibliothèque de rencontres avec renforts.
 
@@ -47,7 +48,7 @@ Nemaï conserve son illustration sur parchemin ; les mondes procéduraux propose
 <td align="center"><a href="#-attaques-animées"><img src="docs/images/attaques.gif" alt="Attaques animées"></a><br><b>Attaques animées</b><br><sub>une animation par figurine</sub></td>
 </tr>
 <tr>
-<td align="center"><a href="#-écran-des-joueurs-et-brouillard-de-guerre"><img src="docs/images/ecran-joueurs.png" alt="Écran des joueurs"></a><br><b>Écran des joueurs</b><br><sub>monde et combat, secrets réservés au MJ</sub></td>
+<td align="center"><a href="#-écran-des-joueurs-et-brouillard-de-guerre"><img src="docs/images/ecran-joueurs.png" alt="Combat côté joueur : tour actif, initiative et PV des héros"></a><br><b>Écran des joueurs</b><br><sub>monde, tours de combat et initiative publique</sub></td>
 <td align="center"><a href="#-onglet-outils-mj"><img src="docs/images/outils-mj.png" alt="Outils MJ"></a><br><b>Outils du MJ</b><br><sub>rencontres, PNJ, trésors, quêtes...</sub></td>
 <td align="center"><a href="#-simulateur-de-combat"><img src="docs/images/simulation.png" alt="Simulateur"></a><br><b>Simulateur de combat</b><br><sub>200 combats joués par l'IA en une seconde</sub></td>
 </tr>
@@ -106,8 +107,8 @@ Nemaï conserve son illustration sur parchemin ; les mondes procéduraux propose
 | 4 | Clique sur ce lieu puis **⚔ Générer la carte de combat** : une carte adaptée au lieu est créée et ouverte dans l'éditeur. | 🌍 Monde → 🛠 Éditeur |
 | 5 | Ajuste les murs, le relief et les petits décors : bougies, mobilier, campement… L’image joueur reste suspendue pendant l’édition. | 🛠 Éditeur |
 | 6 | Pose les héros (**Mes personnages**) et les monstres, ou génère une **rencontre équilibrée** et clique **➕ Poser sur la carte de combat**. | 🎲 Jouer / 📜 Outils MJ |
-| 7 | Active le **🌫 brouillard de guerre**. La fenêtre joueur ouverte suit le passage au combat ; sinon, ouvre-la avec **📺 Ouvrir l’écran des joueurs**. | 🎲 Jouer |
-| 8 | **⚔ Commencer le combat** : l'initiative est lancée, chacun joue à son tour (déplacement, **⚔ Attaquer**, sorts). | 🎲 Jouer |
+| 7 | Active le **🌫 brouillard de guerre**. En haut du panneau droit, **📺 Afficher le combat aux joueurs** ouvre la carte sur le deuxième écran. | 🎲 Jouer |
+| 8 | **⚔ Commencer avec les joueurs** ouvre la projection et lance l’initiative en un clic. **Commencer le combat** permet aussi de démarrer depuis le MJ. Chacun joue à son tour (déplacement, **⚔ Attaquer**, sorts). | 🎲 Jouer |
 | 9 | Joue les monstres toi-même, ou confie-les à l'IA (**🤖**). Avant la partie, **🧪 simule** la rencontre pour vérifier sa difficulté. | 🎲 Jouer |
 | 10 | **🏁 Terminer** : l'XP est partagée, les PV sont enregistrés sur les fiches, et on peut monter de niveau. | 🎲 Jouer → 🧙 Personnages |
 
@@ -849,9 +850,9 @@ Le hasard du jeu est à graine : un combat simulé peut être rejoué à l'ident
 
 ### 📺 Écran des joueurs et brouillard de guerre
 
-**📺 Ouvrir l'écran des joueurs**, dans **Monde** ou **Jouer la carte**, ouvre une fenêtre dédiée à placer sur
+**📺 Ouvrir l'écran des joueurs**, dans **Monde**, ou **📺 Afficher le combat aux joueurs**, en haut du panneau de **Jouer la carte**, ouvre une fenêtre dédiée à placer sur
 la télé ou un deuxième écran **du même ordinateur**. Le MJ garde toutes ses commandes dans le grimoire.
-La projection est en lecture seule : elle reçoit les images publiques, sans recevoir les fiches, notes, quêtes,
+La projection est en lecture seule : elle reçoit les images publiques et le résumé visible du combat, sans recevoir les fiches, notes, quêtes,
 réserves de monstres ni sauvegardes de campagne. Elle fonctionne aussi en ouvrant directement `index.html`.
 
 ![Nemaï sur l’écran des joueurs](docs/images/ecran-monde.png)
@@ -863,6 +864,13 @@ réserves de monstres ni sauvegardes de campagne. Elle fonctionne aussi en ouvra
    le combat. Retourne dans **Monde** pour réafficher le voyage. Les déplacements, dégâts et animations visibles sont actualisés.
 4. Coche **Masquer l’écran** pour afficher un rideau pendant une préparation. Les onglets **Éditeur**,
    **Personnages** et **Outils MJ** suspendent la dernière image publique ; ils ne projettent pas les modifications en cours.
+
+**La phase de combat côté joueur** possède son propre bandeau : round, personnage actif, prochain tour public,
+ordre d’initiative, portraits, PV des héros et états visibles. Les figurines cachées ou entièrement dans le brouillard
+sont absentes de la liste ; les PV et les valeurs d’initiative des monstres ne sont jamais transmis.
+Si le tour actif appartient à une figurine cachée, seul « Le MJ résout le tour » apparaît.
+Le bouton **⚔ Commencer avec les joueurs** ouvre ou réutilise la même fenêtre et démarre le combat ;
+le MJ garde ses commandes. Le rideau masque aussi le bandeau, et le retour au monde le retire.
 
 Les joueurs disposent d’un zoom à la molette, du déplacement de la vue et de **Recentrer (F)**, indépendants de la caméra MJ.
 Recharger la fenêtre joueur rétablit la connexion ; après un rechargement du grimoire, reclique sur son bouton d’ouverture.
@@ -1118,7 +1126,8 @@ Le navigateur a bloqué la fenêtre : autorise les pop-ups pour cette page (icô
 <details>
 <summary><b>L'écran des joueurs ne se met pas à jour.</b></summary>
 
-Garde le grimoire MJ ouvert dans le **même navigateur** et utilise son bouton **Ouvrir l’écran des joueurs**.
+Garde le grimoire MJ ouvert dans le **même navigateur** et utilise **Ouvrir l’écran des joueurs** depuis Monde,
+ou **Afficher le combat aux joueurs** en haut de Jouer la carte.
 Après avoir rechargé le grimoire, reclique sur ce bouton pour rétablir la liaison. Vérifie aussi que **Masquer l’écran**
 est décoché et que le MJ se trouve dans **Monde** ou **Jouer la carte** : les autres onglets suspendent la projection.
 </details>
@@ -1208,7 +1217,7 @@ js/play.js       Onglet Jouer : figurines, rendu, souris, panneau de la figurine
 js/combat.js     Initiative, PV, attaques, états, jets contre la mort, journal, dés
 js/chars.js      Onglet Personnages : fiches et progression
 js/fog.js        Brouillard de guerre, marqueurs secrets et aperçu joueur
-js/player-screen.js Projection publique du monde et du combat depuis le MJ
+js/player-screen.js Projection publique du monde, du combat et de son suivi visible depuis le MJ
 players.html / js/player-view.js / css/players.css  Fenêtre de projection en lecture seule
 js/sfx.js        Effets sonores synthétisés
 js/actions.js    Capacités et sorts, actions standard, ciblage
@@ -1278,7 +1287,8 @@ la sauvegarde des voyages, le rechargement et l’affichage du camp jusqu’à 3
 le retour au monde précédent, les exports/imports, le rechargement et l’ouverture directe sans serveur.
 `py scripts/check_players_decor.py` vérifie les 24 accessoires, les dispersions, la rotation et les sauvegardes,
 ainsi que deux vraies fenêtres MJ/joueur : informations masquées, animations dans le brouillard, changement de scène,
-rideau, préparation suspendue, lecture seule, reconnexion et ouverture locale sans serveur.
+rideau, préparation suspendue, lecture seule, reconnexion et ouverture locale sans serveur. Il vérifie aussi le lancement
+du combat avec projection, les tours, PV et états du bandeau joueur, la confidentialité de l’initiative et l’affichage jusqu’à 390 pixels.
 
 ---
 

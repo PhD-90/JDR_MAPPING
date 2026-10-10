@@ -1,4 +1,4 @@
-// L'écran de projection reçoit uniquement un rendu public, jamais la campagne ou les fiches.
+// L'écran reçoit le rendu et un résumé public du combat, jamais la campagne ou les fiches.
 let playerWindow=null, playerCurtain=false, playerLastSeen=0, playerLastFrame=null;
 let playerScene='world', playerSceneSerial=0, playerFrameError='';
 const playerCanvas=document.createElement('canvas');
@@ -13,8 +13,17 @@ function openPlayerScreen(){
   const url=new URL('players.html',location.href);
   if(!playerWindow||playerWindow.closed)playerWindow=window.open(url.href,'jdr-joueurs','width=1280,height=800');
   else playerWindow.focus();
-  if(!playerWindow){alert('Autorise les fenêtres pop-up pour ouvrir l’écran des joueurs.');return;}
+  if(!playerWindow){alert('Autorise les fenêtres pop-up pour ouvrir l’écran des joueurs.');return false;}
   playerLastSeen=0;updatePlayerScreenStatus();
+  return true;
+}
+function startCombatWithPlayers(){
+  if(!map.units.length){alert('Place des figurines sur la carte avant de commencer le combat.');return;}
+  // L'ouverture reste dans le clic utilisateur, sans déclencher de fenêtre depuis l'IA ou une simulation.
+  if(!openPlayerScreen())return;
+  if(mode!=='play')setMode('play');
+  if(map.turn<=0)startCombat();
+  sendPlayerFrame();
 }
 function updatePlayerScreenStatus(){
   const connected=playerWindow&&!playerWindow.closed;
@@ -24,9 +33,28 @@ function updatePlayerScreenStatus(){
   document.querySelectorAll('[data-player-status]').forEach(el=>{if(el.textContent!==text)el.textContent=text;});
   document.querySelectorAll('[data-player-curtain]').forEach(el=>el.checked=playerCurtain);
 }
+const playerUnitVisible=u=>!!u&&!u.hidden&&!(map.fogOn&&fullyFogged(u.x,u.y,u.size,u.size));
+const playerPortraits=new Map();
+function publicCombatInfo(){
+  const fighting=map.turn>0,active=activeUnit(),next=fighting?nextCombatUnit():null;
+  const ordered=fighting?map.order.map(unitById).filter(Boolean):map.units;
+  const units=ordered.filter(playerUnitVisible).map(u=>{
+    if(!playerPortraits.has(u.sprite))playerPortraits.set(u.sprite,spriteCanvas(u.sprite).toDataURL('image/png'));
+    const hero=unitKind(u)==='hero';
+    const item={name:u.name,hero,portrait:playerPortraits.get(u.sprite),active:fighting&&u===active,
+      state:u.dead?'Mort':isKO(u)?(u.stable?'Stabilisé':'Hors de combat'):'',
+      conditions:(u.conds||[]).map(condOf).filter(Boolean).map(c=>c.name)};
+    // Liste blanche : aucun identifiant interne, initiative chiffrée, PV ennemi ou ressource secrète.
+    if(hero){item.hp=u.hp;item.hpMax=u.hpMax;}
+    return item;
+  });
+  return {round:fighting?map.turn:0,turn:!fighting?'Le MJ prépare le combat':
+    playerUnitVisible(active)&&!isKO(active)?`Au tour de ${active.name}`:'Le MJ résout le tour',
+    next:fighting&&playerUnitVisible(next)?`Ensuite : ${next.name}`:'',units};
+}
 function playerBattleTitle(){
   const locationName=world?.locations.find(l=>l.id===map.locId)?.name;
-  const u=activeUnit(), visible=u&&!u.hidden&&!(map.fogOn&&fullyFogged(u.x,u.y,u.size,u.size));
+  const u=activeUnit(), visible=playerUnitVisible(u);
   return [locationName,map.turn>0?`Round ${map.turn}`:'Préparation du combat',visible?`Tour de ${u.name}`:''].filter(Boolean).join(' · ');
 }
 function renderPlayerFrame(){
@@ -61,6 +89,7 @@ function renderPlayerFrame(){
   }
   return {type:'jdr-player-frame',scene:playerScene,sceneId:playerSceneSerial,background,
     title:playerScene==='world'?`${world.name} · Jour ${world.day}`:playerBattleTitle(),
+    combat:playerScene==='play'?publicCombatInfo():null,
     image:playerCanvas.toDataURL('image/webp',.9)};
 }
 function sendPlayerFrame(){
@@ -84,6 +113,7 @@ window.addEventListener('message',e=>{
   playerLastSeen=Date.now();sendPlayerFrame();updatePlayerScreenStatus();
 });
 $('btnWorldPlayers').onclick=openPlayerScreen;
+$('btnStartPlayers').onclick=startCombatWithPlayers;
 $('previewWorldPlayers').onchange=e=>{previewWorldPlayers=e.target.checked;wredraw();};
 document.querySelectorAll('[data-player-curtain]').forEach(el=>el.onchange=()=>{
   playerCurtain=el.checked;sendPlayerFrame();updatePlayerScreenStatus();

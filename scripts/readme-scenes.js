@@ -44,7 +44,7 @@ var mediaScenes = [
   { name:'simulation', title:'Évaluer la rencontre', subtitle:'100 combats simulés : victoires, pertes et difficulté.' },
   { name:'simulation-rencontre', title:'', subtitle:'' },
   { name:'brouillard-mj', title:'Garder les secrets du maître', subtitle:'Brouillard, pièges et figurines cachées dans la vue MJ.' },
-  { name:'ecran-joueurs', title:'La vue des aventuriers', subtitle:'Un écran dédié, sans les secrets ni les PV des monstres.' },
+  { name:'ecran-joueurs', title:'Le combat des aventuriers', subtitle:'Tours, initiative visible et PV des héros sur l’écran joueur.' },
   { name:'outils-mj', title:'Le cabinet du maître', subtitle:'Rencontres, PNJ, trésors et notes de session.' },
   { name:'rencontre', title:'De la rencontre à la bataille', subtitle:'Générer les adversaires, puis les placer sur la carte.' },
   ...['figurines','panneau-regles','panneau-actions','panneau-suivi','panneau-figurine','panneau-des-journal','journal-ia'].map(name=>({ name, title:'', subtitle:'' }))
@@ -276,6 +276,7 @@ async function prepareMediaScene(name) {
     mediaScroll('#monsterSearch','playLeft');
   } else if(name==='brouillard-mj' || name==='ecran-joueurs') {
     mediaFog();
+    startCombat(); mediaActive(mediaUnits.warrior);
     if(name==='brouillard-mj') mediaScroll('#fogOn','playRight',60);
     fit();
   } else {

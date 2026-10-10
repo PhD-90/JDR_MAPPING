@@ -66,6 +66,9 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline:2px so
 .muted { color:var(--mut); font-size:11px; }
 .turn-bar { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 8px; margin-bottom:10px; background:var(--panel2); border-radius:6px; font-size:14px; }
 .turn-bar button { background:#3a3222; border-color:var(--acc); }
+.player-combat-controls { padding:10px; margin-bottom:12px; border:1px solid var(--acc); border-radius:6px; background:var(--panel2); }
+.player-combat-controls .wide-btn { margin:5px 0; }
+.player-combat-controls p { margin-bottom:0; }
 .dot { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:5px; vertical-align:-1px; }
 .dot.g { background:#3cdc64; } .dot.r { background:#ff4646; }
 .seg { margin-bottom:6px; } .seg button { padding:4px 2px; font-size:12px; }
