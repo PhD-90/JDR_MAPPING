@@ -397,7 +397,20 @@ function drawAreaFx(c, f, q) {
 
 function drawAnimEffects(c) {
   const now = performance.now();
-  for (const f of areaList) drawAreaFx(c, f, (now - f.start) / f.dur);
+  c.save();
+  if(playerSight()&&map.fogOn){
+    // No spell trail, blast or floating damage text may paint over opaque fog.
+    c.beginPath();
+    for(let y=0;y<map.rows;y++)for(let x=0;x<map.cols;x++)if(map.fog[y*map.cols+x]){
+      const level=levelAt(x,y),below=y+1<map.rows?levelAt(x,y+1):0;
+      c.rect(x*T,y*T-level*LH(),T,T+Math.max(0,level-below)*LH());
+    }
+    c.clip();
+  }
+  for (const f of areaList) {
+    const source=map.units.find(u=>u.id===f.source);
+    if(!playerSight()||(source&&!unseen(source)))drawAreaFx(c, f, (now - f.start) / f.dur);
+  }
   for (const p of pops) {
     if (unseen(p.u)) continue;
     const q = (now - p.start) / p.dur, b = unitBox(p.u);
@@ -416,4 +429,5 @@ function drawAnimEffects(c) {
       floatText(c, g.tx, g.B.fy - g.B.sw - 48 - q * 14, an.st.name + ' !', an.st.color, 1 - q * q);
     }
   }
+  c.restore();
 }

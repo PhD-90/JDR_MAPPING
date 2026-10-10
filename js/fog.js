@@ -2,9 +2,10 @@
 // - brouillard de guerre (pinceau, révélation automatique autour des personnages avec ligne de vue)
 // - marqueurs secrets (pièges, trésors, passages...) visibles uniquement par le MJ
 // - figurines cachées aux joueurs (embuscades)
-// - écran des joueurs : seconde fenêtre (index.html?joueurs) synchronisée en direct, sans les informations du MJ
+// - aperçu public du combat ; projection dédiée dans player-screen.js / players.html
 
 const PLAYER_VIEW = new URLSearchParams(location.search).has('joueurs');
+let previewWorldPlayers = false;
 let previewPlayers = false;            // le MJ regarde la carte comme les joueurs
 const playerSight = () => PLAYER_VIEW || previewPlayers;
 
@@ -168,41 +169,16 @@ if (!PLAYER_VIEW) {
     markPal.appendChild(b);
   });
   $('uHidden').onchange = e => { if (!playSel) return; pushUndo(); playSel.hidden = e.target.checked; changed(); syncPlayUI(); };
-  $('btnPlayers').onclick = () => {
-    const w = window.open(location.pathname + '?joueurs', 'jdr-joueurs', 'width=1280,height=800');
-    if (!w) alert('La fenêtre a été bloquée par le navigateur : autorise les fenêtres pop-up pour cette page.');
-  };
+  $('btnPlayers').onclick = () => openPlayerScreen();
 }
 
-// ---------- Synchronisation avec l'écran des joueurs ----------
-// La fenêtre du MJ publie la carte (sauvegarde automatique) et les événements (attaques, dégâts) via le stockage local
+// ---------- Événements locaux et compatibilité de l'ancienne URL ----------
+// La projection actuelle reçoit son rendu public via player-screen.js.
 function broadcast(ev) {
   if (PLAYER_VIEW || SIM) return;
   try { localStorage.setItem('jdr-event', JSON.stringify({ ...ev, at: Date.now() + Math.random() })); } catch (e) {}
 }
-function initPlayerView() {
-  document.body.classList.add('player-view');
-  document.title = 'Écran des joueurs — Map JDR';
-  const byId = id => map.units.find(u => u.id === id);
-  window.addEventListener('storage', e => {
-    if (e.key === 'jdr-map' && e.newValue) {
-      const ids = anims.map(a => [a.a.id, a.t.id]), popIds = pops.map(p => p.u.id);
-      map = normalizeMap(JSON.parse(e.newValue));
-      anims.forEach((a, k) => { a.a = byId(ids[k][0]) || a.a; a.t = byId(ids[k][1]) || a.t; });
-      pops.forEach((p, k) => { p.u = byId(popIds[k]) || p.u; });
-      invalidateZones(); syncPlayUI(); redraw();
-    }
-    if (e.key === 'jdr-event' && e.newValue) {
-      const ev = JSON.parse(e.newValue);
-      if (ev.type === 'attack') { const a = byId(ev.a), t = byId(ev.t); if (a && t && !t.hidden) startAttack(a, t, ev.res, ev.st || null); }
-      if (ev.type === 'area') startAreaFx(ev.fx);
-      if (ev.type === 'sfx') playSfx(ev.kind);
-      if (ev.type === 'pop') { const u = byId(ev.u); if (u && !u.hidden) popText(u, ev.text, ev.color, ev.size); }
-      if (ev.type === 'fit') fit();
-    }
-  });
-  window.addEventListener('keydown', e => { if (e.key.toLowerCase() === 'f') fit(); });
-}
+function initPlayerView() { location.replace(new URL('players.html',location.href)); }
 // Bandeau de l'écran des joueurs : lieu, round, figurine dont c'est le tour
 function updatePlayerBanner() {
   const el = $('playerBanner'); if (!el) return;

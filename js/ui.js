@@ -11,7 +11,8 @@ function syncSelUI() {
 }
 function rotate() {
   if (!sel) return; pushUndo();
-  [sel.w, sel.h] = [sel.h, sel.w];
+  if(OBJECTS[sel.type].shape==='detail')sel.rotation=((sel.rotation||0)+1)%4;
+  else [sel.w, sel.h] = [sel.h, sel.w];
   sel.x = clamp(sel.x, 0, map.cols - sel.w); sel.y = clamp(sel.y, 0, map.rows - sel.h);
   changed(); syncSelUI();
 }
@@ -73,8 +74,8 @@ $('brushShape').onchange = e => { brushShape = e.target.value; redraw(); };
 $('btnUndo').onclick = undo;
 $('btnRedo').onclick = redo;
 
-const objectCategory = k => ['wall', 'house', 'pillar', 'stairs'].includes(k) ? 'structure'
-  : ['tree', 'rock'].includes(k) ? 'nature' : OBJECTS[k].shape === 'token' ? 'token' : 'furniture';
+const objectCategory = k => OBJECTS[k].category || (['wall', 'house', 'pillar', 'stairs'].includes(k) ? 'structure'
+  : ['tree', 'rock'].includes(k) ? 'nature' : OBJECTS[k].shape === 'token' ? 'token' : 'furniture');
 function filterObjects() {
   const query = norm($('objSearch').value), category = $('objCategory').value;
   let count = 0;

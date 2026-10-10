@@ -177,7 +177,7 @@ function resolveAction(u, k, tg, scroll = null) {
 function areaFx(u, center, r, kind, color) {
   if (SIM) return;
   const from = unitBox(u), to = { x: (center.x + 0.5) * T, y: (center.y + 0.5) * T - levelAt(Math.round(center.x), Math.round(center.y)) * LH() };
-  const fx = { from: { x: from.cx, y: from.fy - from.sw * 0.6 }, to, r: (r + 0.5) * T, kind, color };
+  const fx = { source:u.id, from: { x: from.cx, y: from.fy - from.sw * 0.6 }, to, r: (r + 0.5) * T, kind, color };
   startAreaFx(fx); broadcast({ type: 'area', fx });
 }
 

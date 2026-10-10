@@ -6,6 +6,8 @@ var mediaOriginalNow = performance.now.bind(performance);
 performance.now = () => mediaClock;
 later = (fn, ms) => { if (SIM) fn(); else mediaQueue.push({ at:mediaClock + ms, fn }); };
 var mediaScenes = [
+  { name:'nemai', title:'Bienvenue à Nemaï', subtitle:'Le parchemin de référence : 35 lieux interactifs pour ta campagne.' },
+  { name:'ecran-monde', title:'Partager le voyage', subtitle:'Le monde et les héros sur un écran joueur dédié, sans les préparatifs du MJ.' },
   { name:'monde', title:'Un monde à explorer', subtitle:'Royaumes, villes et donjons sur une carte de campagne.' },
   { name:'monde-lieu', title:'Chaque lieu raconte une histoire', subtitle:'Notes, habitants et carte de combat liée au lieu.' },
   { name:'voyage-evenements', title:'L’aventure entre deux rencontres', subtitle:'Voyages, vivres, calendrier et journal des événements.' },
@@ -19,6 +21,7 @@ var mediaScenes = [
   { name:'rencontres-preparees', title:'Préparer les rencontres', subtitle:'Bibliothèque d’adversaires, difficulté et vagues de renforts.' },
   { name:'renforts', title:'Faire entrer les renforts', subtitle:'Déployer chaque vague au moment choisi pendant le combat.' },
   { name:'editeur', title:'L’atelier du cartographe', subtitle:'Sols naturels, décors et relief sur la table de jeu.' },
+  { name:'petits-decors', title:'Donner vie aux lieux', subtitle:'24 petits accessoires : nature, campement, taverne et donjon.' },
   { name:'modules', title:'Construire une salle en un geste', subtitle:'Aperçu des murs et de l’entrée avant de relâcher.', animated:true },
   { name:'riviere', title:'Dessiner une rivière', subtitle:'Un tracé continu, de l’eau et des berges de sable.', animated:true },
   { name:'presets', title:'Changer de décor', subtitle:'Forêt, taverne, donjon… dix presets et leurs variantes.' },
@@ -53,7 +56,10 @@ var mediaAttackGroups = {
 };
 
 function mediaReset() {
+  previewWorldPlayers=false;playerCurtain=false;playerLastFrame=null;
   $('expeditionDialog')?.close();
+  document.body.classList.remove('world-map-focus');
+  if($('atlasExpand')){$('atlasExpand').textContent='⛶ Carte seule';$('atlasExpand').setAttribute('aria-pressed','false');}
   mediaQueue = []; mediaClock = 50000; mediaStart = mediaClock;
   soundOn = false; syncSoundBtn(); autoMonsters = false; autoHeroes = false; aiPaused = true; rulesMode = false;
   clearTimeout(aiTimer); anims = []; pops = []; areaList = [];
@@ -115,8 +121,8 @@ function mediaActive(u) {
   map.active=map.order.indexOf(u.id); beginTurn(); selectUnit(u);
 }
 
-function mediaWorld() {
-  newWorld(73912,'continent'); setMode('world'); fitWorld();
+function mediaWorld(style='continent') {
+  newWorld(73912,style); setMode('world'); fitWorld();
   const origin={...world.pos[sheets[0].id]};
   sheets.forEach((s,i)=>world.pos[s.id]={x:origin.x+(i%2)*5-2,y:origin.y+Math.floor(i/2)*7-3});
   drawWorld();
@@ -182,7 +188,9 @@ function mediaMonsterDuel(key) {
 
 async function prepareMediaScene(name) {
   mediaCurrent=name; mediaReset();
-  if(name==='rencontres-preparees'||name==='renforts') {
+  if(name==='nemai') {
+    mediaWorld('nemai');await nemaiImage.decode();wsel={loc:null,ids:new Set()};$('atlasExpand').click();drawWorld();
+  } else if(name==='rencontres-preparees'||name==='renforts') {
     mediaBattle(false);map.units=map.units.filter(u=>unitKind(u)==='hero');invalidateZones();
     const r=createNotebookRecord('encounters',{title:'Embuscade au vieux pont',notes:'Les guetteurs appellent leur chef au son du cor. Faire entrer les renforts au deuxième round.',side:'east',
       waves:[{name:'Les guetteurs',counts:{goblin:2,kobold:2}},{name:'Le chef et ses loups',counts:{ogre:1,wolf:2}}]});
@@ -223,6 +231,19 @@ async function prepareMediaScene(name) {
       const journal=document.querySelector('.wjournal'); if(journal) mediaScroll('.wjournal','worldRight',300);
     }
     drawWorld();
+  } else if(name==='ecran-monde') {
+    mediaWorld('nemai');await nemaiImage.decode();wsel={loc:null,ids:new Set()};drawWorld();
+  } else if(name==='petits-decors') {
+    map=newMap(18,12);map.floor.fill('grass');map.grid=false;setMode('edit');
+    for(let y=1;y<7;y++)for(let x=1;x<10;x++)map.floor[y*18+x]='wood';
+    for(let x=1;x<10;x++)addObj('wall',x,0);
+    for(let y=1;y<7;y++)addObj('wall',0,y);
+    addObj('table',3,3);addObj('table',6,3);addObj('chest',8,1);addObj('barrel',8,5);
+    const props=[['bottles',3,3],['plates',4,3],['books',6,3],['candles',7,3],['chair',3,4],['chair',6,4],['bench',4,2],['rug',4,5],['urn',1,2],['sacks',1,5],['scrolls',7,1],
+      ['tent',12,3],['bedroll',12,5],['bedroll',14,5],['campfire',13,7],['lantern',11,7],['logs',15,7],['stump',15,9],['bones',8,9],['chains',9,9],['pebbles',6,9],
+      ['flowers',3,9],['grassTuft',2,8],['fern',4,8],['mushrooms',1,10],['bush',16,2],['bush',15,1],['tree',16,0],['tree',0,9]];
+    props.forEach(([type,x,y])=>addObj(type,x,y));setTool('select');select(null);fit();syncMapUI();
+    mediaScroll('[data-obj="grassTuft"]','left',110);
   } else if(name==='editeur' || name==='presets' || name==='relief') {
     mediaTerrain(name==='presets'?'tavern':'forest');
     document.querySelector('.editor-presets').open=name==='presets';

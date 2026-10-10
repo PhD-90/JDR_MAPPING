@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>if(new URLSearchParams(location.search).has('joueurs'))location.replace(new URL('players.html',location.href));</script>
 <title>Map JDR — Le grimoire du maître</title>
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/grimoire.css">
@@ -78,8 +79,10 @@
     <input id="objSearch" type="search" placeholder="Rechercher un décor…" aria-label="Rechercher un décor">
     <label>Catégorie <select id="objCategory">
       <option value="">Tous</option><option value="structure">Construction</option>
-      <option value="nature">Nature</option><option value="furniture">Mobilier</option><option value="token">Pions</option>
+      <option value="nature">Nature</option><option value="furniture">Mobilier</option>
+      <option value="camp">Campement</option><option value="tavern">Taverne</option><option value="dungeon">Donjon et accessoires</option><option value="token">Pions</option>
     </select></label>
+    <p class="muted">Les petits accessoires sont visuels : ils ne bloquent pas les déplacements. R pour les pivoter après sélection.</p>
     <div class="grid" id="objPal"></div>
     <p id="objEmpty" class="muted hidden">Aucun décor trouvé. Essaie un autre mot ou une autre catégorie.</p>
   </aside>
@@ -139,7 +142,7 @@
         <p class="muted">Glisse pour dessiner le cours d’eau. Les berges ajoutent une case autour de l’eau ; le relief et les décors restent en place.</p>
       </div>
       <div data-module-options="scatter">
-        <label>Décor <select id="moduleScatterTheme"><option value="forest">Forêt</option><option value="rocks">Rochers</option><option value="supplies">Caisses et tonneaux</option></select></label>
+        <label>Décor <select id="moduleScatterTheme"><option value="forest">Forêt</option><option value="rocks">Rochers</option><option value="supplies">Caisses et tonneaux</option><option value="undergrowth">Sous-bois fleuri</option><option value="camp">Accessoires de camp</option><option value="dungeon">Vestiges de donjon</option></select></label>
         <label for="moduleDensity">Densité <output id="moduleDensityValue" for="moduleDensity">25 %</output></label>
         <input id="moduleDensity" type="range" min="5" max="60" step="5" value="25">
         <p class="muted">Trace une zone pour répartir le décor. Les cases occupées, l’eau, la lave et le vide sont évités. Maximum : 250 éléments par geste.</p>
@@ -191,12 +194,23 @@
   <aside id="worldLeft" class="world-only">
     <h2>Monde</h2>
     <input id="wName" class="w-name" type="text">
+    <button id="btnNemai" class="primary wide-btn">🗺 Utiliser la carte de Nemaï</button>
+    <button id="btnPreviousWorld" class="wide-btn hidden">↶ Revenir au monde précédent</button>
+    <p id="nemaiNotice" class="muted hidden" role="status"></p>
     <div class="w-day">📅 Jour <b id="wDay"></b>
       <button id="wNext" class="mini" title="Faire passer une journée">+1 jour</button>
       <button id="wShort" class="mini" title="1 heure : dés de vie et capacités de repos court">☕ Repos court</button>
       <button id="wRest" class="mini" title="Le groupe récupère PV, capacités et dés de vie (+1 jour)">🛏 Repos long</button>
     </div>
 
+    <section class="player-controls" aria-label="Écran des joueurs">
+      <h2>Écran des joueurs</h2>
+      <button id="btnWorldPlayers" class="primary wide-btn">📺 Ouvrir l’écran des joueurs</button>
+      <label>Masquer l’écran <input type="checkbox" data-player-curtain></label>
+      <label>Voir comme les joueurs <input id="previewWorldPlayers" type="checkbox"></label>
+      <p class="muted" data-player-status role="status">Monde et combat dans la même fenêtre.</p>
+      <p class="muted">Les lieux et les héros sont publics ; monstres, quêtes et préparatifs restent côté MJ. Le parchemin de Nemaï et ses noms imprimés sont visibles en entier.</p>
+    </section>
     <h2>Lieux</h2>
     <div class="row"><input id="wSearch" type="text" placeholder="Rechercher..."><select id="wFilter"><option value="">Tous</option></select></div>
     <div id="wLocList"></div>
@@ -207,12 +221,13 @@
     <h2>Affichage</h2>
     <label>Royaumes <input id="wo_regions" type="checkbox"></label>
     <label>Rivières <input id="wo_rivers" type="checkbox"></label>
-    <label>Montagnes et forêts <input id="wo_symbols" type="checkbox"></label>
-    <label>Noms <input id="wo_labels" type="checkbox"></label>
+    <label id="worldSymbolLabel">Montagnes et forêts <input id="wo_symbols" type="checkbox"></label>
+    <label id="worldLabelLabel">Noms <input id="wo_labels" type="checkbox"></label>
     <label>Style parchemin <input id="wo_parchment" type="checkbox"></label>
     <button id="wFit" style="width:100%">Voir tout le monde</button>
 
     <h2>Génération</h2>
+    <p id="nemaiGenerationHint" class="muted hidden">Nemaï suit la carte de référence. Pour créer un autre monde, choisis une forme procédurale ci-dessous.</p>
     <label>Forme <select id="wStyle"></select></label>
     <label>Graine <input id="wSeed" type="number"></label>
     <div class="row"><button id="wRegen" title="Même graine = même monde">↻ Regénérer</button><button id="wGen">🎲 Nouveau monde</button></div>
@@ -330,7 +345,9 @@
 
     <h2>Outils du MJ</h2>
     <button id="btnPlayers" class="primary wide-btn">📺 Ouvrir l'écran des joueurs</button>
-    <p class="muted">Seconde fenêtre à placer sur la télé ou un 2ᵉ écran : brouillard opaque, figurines cachées et PV des monstres invisibles. Synchronisée en direct.</p>
+    <label>Masquer l’écran <input type="checkbox" data-player-curtain></label>
+    <p class="muted" data-player-status role="status">Monde et combat dans la même fenêtre.</p>
+    <p class="muted">Sur la télé ou un 2ᵉ écran du même ordinateur : passage automatique du monde au combat. Brouillard opaque, figurines cachées et PV des monstres invisibles. Les onglets de préparation suspendent l’image.</p>
     <button id="btnSim" class="wide-btn">🧪 Simuler ce combat (IA contre IA)</button>
     <label>👁 Voir comme les joueurs <input id="previewPlayers" type="checkbox"></label>
     <label>🪤 Pièges et secrets automatiques <input id="autoTraps" type="checkbox"></label>
@@ -406,6 +423,7 @@
 <script src="js/rules.js"></script>
 <script src="js/engine.js"></script>
 <script src="js/render.js"></script>
+<script src="js/decor.js"></script>
 <script src="js/editor.js"></script>
 <script src="js/mapmodules.js"></script>
 <script src="js/presets.js"></script>
@@ -422,6 +440,7 @@
 <script src="js/sim.js"></script>
 <script src="js/gmtools.js"></script>
 <script src="js/worldgen.js"></script>
+<script src="js/world-nemai.js"></script>
 <script src="js/world.js"></script>
 <script src="js/campaign.js"></script>
 <script src="js/equipment-ui.js"></script>
@@ -432,6 +451,7 @@
 <script src="js/input.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/io.js"></script>
+<script src="js/player-screen.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

@@ -103,6 +103,7 @@ function shadowEllipse(c, cx, cy, rx, ry) {
 function drawShadow(c, o) {
   const x = o.x*T, y = o.y*T, w = o.w*T, h = o.h*T, E = objE(o), s = E * 0.35;
   const shape = OBJECTS[o.type].shape;
+  if (shape === 'detail') return;
   if (['wall','house','crate','chest','table','stairs'].includes(shape)) {
     c.fillStyle = 'rgba(0,0,0,.25)';
     c.beginPath(); c.moveTo(x, y + h); c.lineTo(x + w, y + h); c.lineTo(x + w + s, y + h - s*0.3);
@@ -118,6 +119,7 @@ function drawObj(c, o) {
   const x = o.x*T, y = o.y*T, w = o.w*T, h = o.h*T, E = objE(o);
   const cx = x + w/2, cy = y + h/2, m = Math.min(w, h);
   switch (d.shape) {
+    case 'detail': drawSmallDecor(c,o); break;
     case 'wall': {
       box(c, x, y, w, h, E, col);
       // briques sur la face avant
@@ -267,7 +269,8 @@ function drawObj(c, o) {
 }
 
 function sortedObjects() {
-  return [...map.objects].sort((a, b) => (a.y + a.h) - (b.y + b.h) || a.x - b.x);
+  return [...map.objects].sort((a, b) => (a.y + a.h) - (b.y + b.h) ||
+    Number(OBJECTS[a.type].shape==='detail')-Number(OBJECTS[b.type].shape==='detail') || a.x - b.x);
 }
 
 function fullyFogged(x0, y0, w, h) {
@@ -338,7 +341,12 @@ function renderMap(c, ui) {
   }
 
   if (!ui) return;
-  if (mode === 'play') { drawFog(c); drawMarks(c); drawAnimEffects(c); if (!PLAYER_VIEW) drawPlayOverlay(c); return; }
+  if (mode === 'play') {
+    drawFog(c); drawMarks(c); drawAnimEffects(c);
+    // Elevated hidden tiles can overlap revealed tiles in the projection.
+    if(playerSight()&&map.fogOn)drawFog(c);
+    if (!playerSight()) drawPlayOverlay(c); return;
+  }
   if (modulePreview) drawMapModuleOverlay(c, modulePreview);
   if (rect) {
     const label = `${rect.x1 - rect.x0 + 1} × ${rect.y1 - rect.y0 + 1} cases · ${FLOORS[curFloor].name}`;

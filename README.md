@@ -5,9 +5,9 @@
 **L'atelier du maître du jeu : carte du monde, cartes de combat en 2D semi-3D, fiches de personnages
 et suivi des combats en direct.**
 
-<a href="docs/visite-guidee.mp4"><img src="docs/visite-guidee.gif" alt="Visite guidée de JDR Mapping, thème Grimoire : monde, modules de carte, personnages, combat, sorts, IA, simulateur et outils du MJ" width="100%"></a>
+<a href="docs/visite-guidee.mp4"><img src="docs/visite-guidee.gif" alt="Visite guidée de JDR Mapping : Nemaï, écrans MJ et joueurs, petits décors, personnages, combat, sorts, IA et outils du MJ" width="100%"></a>
 
-**🎬 [Regarder la visite guidée en vidéo (MP4, 2 min)](docs/visite-guidee.mp4)** · 34 scènes : thème Grimoire, équipement, atlas, camp, carnet, rencontres préparées et attaques des 15 nouveaux monstres
+**🎬 [Regarder la visite guidée en vidéo (MP4, 2 min 09)](docs/visite-guidee.mp4)** · 37 scènes : Nemaï, écrans MJ/joueurs, petits décors, équipement, atlas, camp, carnet, rencontres préparées et attaques des 15 nouveaux monstres
 
 Génère le monde de ta campagne, suis le groupe de ville en donjon, construis les cartes de combat,
 puis fais jouer l'affrontement : initiative, points de vie, sorts, jets de dés, brouillard de guerre,
@@ -19,10 +19,13 @@ une rencontre 200 fois pour en mesurer la difficulté réelle. Le MJ garde toujo
 
 **Habillage Grimoire** : panneaux en cuir sombre, fiches et outils du MJ sur parchemin, accents rouge et or,
 icônes dessinées et cartes posées sur une table de jeu. Les textures et polices fonctionnent hors ligne.
-Les nouveaux mondes utilisent le style parchemin, désactivable dans les options d'affichage.
+Nemaï conserve son illustration sur parchemin ; les mondes procéduraux proposent un style parchemin désactivable.
 
 **Équipement des aventuriers** : 55 équipements, objets personnalisés, inventaire visuel, effets réels en combat et coffre commun.
 **Atlas de campagne** : mini-carte, favoris, lieux visités et itinéraires à étapes avec estimation des vivres.
+**Nemaï** : la carte illustrée de référence, avec 35 lieux interactifs et une échelle de voyage calée sur son dessin.
+**Petits décors** : 24 accessoires, rotation, pose sur le mobilier et trois nouvelles dispersions.
+**Écran des joueurs** : le monde et les combats dans une fenêtre dédiée, avec plein écran, zoom et masquage des préparatifs.
 **Camp des aventuriers** : état du groupe, répartition des provisions, allures de voyage et repos avec choix des dés de vie.
 **Carnet du MJ** : séances, PNJ, quêtes à objectifs et bibliothèque de rencontres avec renforts.
 
@@ -34,8 +37,8 @@ Les nouveaux mondes utilisent le style parchemin, désactivable dans les options
 
 <table>
 <tr>
-<td width="33%" align="center"><a href="#-le-monde"><img src="docs/images/monde.png" alt="Carte du monde"></a><br><b>Carte du monde</b><br><sub>royaumes, villes, donjons, voyages</sub></td>
-<td width="33%" align="center"><a href="#-léditeur-de-carte"><img src="docs/images/editeur.png" alt="Éditeur"></a><br><b>Éditeur de carte</b><br><sub>sols, éléments, relief, 10 presets</sub></td>
+<td width="33%" align="center"><a href="#-le-monde"><img src="docs/images/nemai.png" alt="Carte de Nemaï"></a><br><b>Carte du monde</b><br><sub>Nemaï, 35 lieux, voyages et cartes liées</sub></td>
+<td width="33%" align="center"><a href="#-léditeur-de-carte"><img src="docs/images/petits-decors.png" alt="Éditeur et petits accessoires"></a><br><b>Éditeur de carte</b><br><sub>24 petits décors, relief, modules et presets</sub></td>
 <td width="33%" align="center"><a href="#-les-personnages"><img src="docs/images/personnages.png" alt="Fiches de personnages"></a><br><b>Fiches de personnages</b><br><sub>races, classes, caractéristiques</sub></td>
 </tr>
 <tr>
@@ -44,7 +47,7 @@ Les nouveaux mondes utilisent le style parchemin, désactivable dans les options
 <td align="center"><a href="#-attaques-animées"><img src="docs/images/attaques.gif" alt="Attaques animées"></a><br><b>Attaques animées</b><br><sub>une animation par figurine</sub></td>
 </tr>
 <tr>
-<td align="center"><a href="#-écran-des-joueurs-et-brouillard-de-guerre"><img src="docs/images/ecran-joueurs.png" alt="Écran des joueurs"></a><br><b>Écran des joueurs</b><br><sub>brouillard de guerre, figurines cachées</sub></td>
+<td align="center"><a href="#-écran-des-joueurs-et-brouillard-de-guerre"><img src="docs/images/ecran-joueurs.png" alt="Écran des joueurs"></a><br><b>Écran des joueurs</b><br><sub>monde et combat, secrets réservés au MJ</sub></td>
 <td align="center"><a href="#-onglet-outils-mj"><img src="docs/images/outils-mj.png" alt="Outils MJ"></a><br><b>Outils du MJ</b><br><sub>rencontres, PNJ, trésors, quêtes...</sub></td>
 <td align="center"><a href="#-simulateur-de-combat"><img src="docs/images/simulation.png" alt="Simulateur"></a><br><b>Simulateur de combat</b><br><sub>200 combats joués par l'IA en une seconde</sub></td>
 </tr>
@@ -98,12 +101,12 @@ Les nouveaux mondes utilisent le style parchemin, désactivable dans les options
 | | Étape | Où |
 | --- | --- | --- |
 | 1 | Crée les héros : nom, race, classe, caractéristiques. Quatre héros d'exemple sont déjà prêts. | 🧙 Personnages |
-| 2 | Ouvre la carte du monde : le groupe attend dans une capitale. | 🌍 Monde |
-| 3 | Sélectionne le groupe (**⌖ Groupe**) puis fais un **clic droit** sur un donjon : vérifie le trajet et clique **Partir vers la prochaine étape**. | 🌍 Monde |
-| 4 | Clique sur le donjon puis **⚔ Générer la carte de combat** : une carte adaptée au lieu est créée et ouverte dans l'éditeur. | 🌍 Monde → 🛠 Éditeur |
-| 5 | Ajuste la carte si besoin : murs, relief, pièges... | 🛠 Éditeur |
+| 2 | Ouvre la carte du monde : une nouvelle campagne commence à Zerua, sur Nemaï. Tu peux déjà ouvrir l’**📺 écran des joueurs** sur ton deuxième écran. | 🌍 Monde |
+| 3 | Sélectionne le groupe (**⌖ Groupe**) puis fais un **clic droit** sur un lieu : vérifie le trajet et clique **Partir vers la prochaine étape**. | 🌍 Monde |
+| 4 | Clique sur ce lieu puis **⚔ Générer la carte de combat** : une carte adaptée au lieu est créée et ouverte dans l'éditeur. | 🌍 Monde → 🛠 Éditeur |
+| 5 | Ajuste les murs, le relief et les petits décors : bougies, mobilier, campement… L’image joueur reste suspendue pendant l’édition. | 🛠 Éditeur |
 | 6 | Pose les héros (**Mes personnages**) et les monstres, ou génère une **rencontre équilibrée** et clique **➕ Poser sur la carte de combat**. | 🎲 Jouer / 📜 Outils MJ |
-| 7 | Active le **🌫 brouillard de guerre** et ouvre l'**📺 écran des joueurs** sur la télé. | 🎲 Jouer |
+| 7 | Active le **🌫 brouillard de guerre**. La fenêtre joueur ouverte suit le passage au combat ; sinon, ouvre-la avec **📺 Ouvrir l’écran des joueurs**. | 🎲 Jouer |
 | 8 | **⚔ Commencer le combat** : l'initiative est lancée, chacun joue à son tour (déplacement, **⚔ Attaquer**, sorts). | 🎲 Jouer |
 | 9 | Joue les monstres toi-même, ou confie-les à l'IA (**🤖**). Avant la partie, **🧪 simule** la rencontre pour vérifier sa difficulté. | 🎲 Jouer |
 | 10 | **🏁 Terminer** : l'XP est partagée, les PV sont enregistrés sur les fiches, et on peut monter de niveau. | 🎲 Jouer → 🧙 Personnages |
@@ -127,11 +130,33 @@ appartient à un lieu du monde (un clic y ramène).
 
 ## 🌍 Le monde
 
-![Carte du monde](docs/images/monde.png)
+![Nemaï : carte illustrée interactive en vue agrandie](docs/images/nemai.png)
+
+### La carte de Nemaï
+
+Les nouveaux mondes s’ouvrent sur **Nemaï**, à partir de l’illustration fournie, conservée telle quelle dans
+`assets/maps/nemai.webp`. **Zerua, Rimal, Vaxelaire, Galaric, Fassylé, Tamsol**, les villages et les grands sites naturels
+forment **35 lieux cliquables** : notes du MJ, quêtes, rencontres, favoris, itinéraires et cartes de combat restent disponibles.
+
+- **Carte seule** agrandit le parchemin en masquant les panneaux ; **Panneaux** les réaffiche.
+- Les lieux du dessin sont fixes pour rester alignés avec l’illustration. Leurs noms, descriptions et notes restent modifiables.
+  Les lieux ajoutés par le MJ peuvent toujours être déplacés. Les noms imprimés dans l’image restent visibles.
+- Les **repères interactifs** se masquent dans Affichage ; la sélection et le survol montrent le lieu visé.
+- La barre de **100 km** de la référence correspond à 175 pixels : les voyages utilisent cette calibration, les allures et les provisions du camp.
+  Les côtes, le lac Lénore, les marais de Dornas, les monts Orins et la forêt de Tarora ont une couche de terrain
+  approximée à partir du dessin pour calculer les voyages et les rencontres. Les cinq territoires de jeu autour des grandes villes
+  servent à la réputation ; leurs limites sont des approximations, masquées par défaut.
+- Si un monde est déjà sauvegardé, **Utiliser la carte de Nemaï** conserve d’abord ce monde dans le navigateur.
+  **Revenir au monde précédent** permet de basculer entre les deux, en gardant leurs lieux, leurs cartes liées et leurs journaux.
+  Les fiches et l’équipement restent ceux de la campagne courante. L’ancienne carte de combat reste ouverte, sans lien vers le nouveau monde.
+  Exporte une campagne pour une sauvegarde complète et transportable.
+
+L’illustration est locale : Nemaï fonctionne aussi en ouvrant directement `index.html`, sans connexion.
+Les exemples procéduraux de la visite guidée restent disponibles dans le sélecteur **Forme**.
 
 ### Génération
 
-Le monde est créé à partir d'une **graine** : la même graine redonne toujours le même monde. Trois formes au choix :
+En plus de Nemaï, un monde peut être créé à partir d’une **graine** : la même graine redonne toujours le même monde. Trois formes procédurales au choix :
 **Continent**, **Archipel**, **Grand continent**.
 
 1. **Relief** : bruit fractal (fBm) et crêtes pour dessiner des chaînes de montagnes ; océan sur les bords.
@@ -258,8 +283,9 @@ Sur la carte du monde, un **⚔** à côté d'un lieu indique qu'il a une carte 
 
 - **14 sols** : pierre, dalles, herbe, terre, sable, parquet, eau, lave, neige, pavés, roche, boue, glace, vide.
 - **Éléments** : mur, maison, caisse, rocher, arbre, colonne, tonneau, table, coffre, escalier, et des pions simples.
+  Ils sont complétés par **24 petits accessoires d’ambiance**.
   Chacun a une largeur, une profondeur, une **hauteur**, une couleur et un nom réglables.
-  Recherche par nom (avec ou sans accents) et filtres Construction, Nature, Mobilier et Pions.
+  Recherche par nom (avec ou sans accents) et filtres Construction, Nature, Mobilier, Campement, Taverne, Donjon et accessoires, Pions.
 - **Historique** : boutons Annuler / Rétablir ; un trait de pinceau, un mur ou un geste d'effacement s'annule en une fois.
 - **Carte** : nombre de colonnes et de lignes, **Effet 3D** (force du relief), grille, remplir, aplanir.
 - **Fichier** : nouvelle carte, sauvegarder / charger en `.json`, **exporter en PNG**.
@@ -275,9 +301,28 @@ Choisis un module, règle ses options à droite, puis glisse sur la carte. L'ape
 | 🏰 **Salle** | Rectangle d'au moins 4 × 4 cases avec sol, murs et ouverture au nord, sud, est ou ouest. Sol, hauteur des murs et largeur de l'entrée réglables. La zone doit être libre de décors et de figurines ; l'option Aplanir utilise le niveau du premier coin. |
 | 〰 **Chemin** | Tracé libre et continu, avec un revêtement au choix et une largeur de 1 à 6 cases. |
 | 🌊 **Rivière** | Tracé d'eau de 1 à 6 cases de large, avec berges de sable facultatives. Les rivières existantes restent en eau au niveau des berges. |
-| 🌲 **Dispersion** | Répartit une forêt, des rochers ou des caisses et tonneaux dans un rectangle. Densité réglable ; évite l'eau, la lave, le vide et les cases occupées. Limite de 250 éléments par geste. |
+| 🌲 **Dispersion** | Répartit une forêt, des rochers, des caisses et tonneaux, un **sous-bois fleuri**, des **accessoires de camp** ou des **vestiges de donjon** dans un rectangle. Densité réglable ; évite l'eau, la lave, le vide et les cases occupées. Limite de 250 éléments par geste. |
 
 Les chemins et rivières conservent le relief et les décors. Tous les éléments créés restent éditables et sont inclus dans la sauvegarde JSON et l'export PNG.
+
+### Petits décors d’ambiance
+
+![Campement et intérieur garnis de petits accessoires](docs/images/petits-decors.png)
+
+**24 accessoires** complètent les constructions existantes, avec des dessins locaux qui fonctionnent hors ligne :
+
+| Catégorie de la palette | Accessoires |
+| --- | --- |
+| Nature | Touffes d’herbe, fleurs sauvages, champignons, fougères, buisson à baies, souche, bois coupé, petits cailloux |
+| Campement | Paillasse, feu de camp, lanterne, petite tente |
+| Taverne | Chaise, banc, sacs de provisions, jarres, bouteilles, vaisselle |
+| Donjon et accessoires | Livres empilés, parchemins, bougies, tapis ancien, ossements, chaînes |
+
+Recherche un accessoire dans **Éléments**, puis clique pour le poser. Sélectionne-le avec **V** pour le déplacer,
+le redimensionner, le recolorer ou le dupliquer ; **R** le fait pivoter d’un quart de tour, même s’il occupe une case carrée.
+Les accessoires suivent le relief et se posent sur les tables ou les caisses. Ce sont des éléments visuels : ils
+n’ajoutent pas de hauteur de déplacement et ne bloquent pas les figurines. Placement, rotation et dispersion sont annulables
+et conservés dans les fichiers de carte et de campagne.
 
 | Aperçu d’une salle avec son entrée | Tracé d’une rivière et de ses berges |
 | --- | --- |
@@ -804,8 +849,26 @@ Le hasard du jeu est à graine : un combat simulé peut être rejoué à l'ident
 
 ### 📺 Écran des joueurs et brouillard de guerre
 
-**📺 Ouvrir l'écran des joueurs** ouvre une seconde fenêtre à placer sur la télé ou un 2ᵉ écran. Elle se met à jour
-en direct (déplacements, PV, animations, dégâts, sons) et **ne montre que ce que les joueurs doivent voir**.
+**📺 Ouvrir l'écran des joueurs**, dans **Monde** ou **Jouer la carte**, ouvre une fenêtre dédiée à placer sur
+la télé ou un deuxième écran **du même ordinateur**. Le MJ garde toutes ses commandes dans le grimoire.
+La projection est en lecture seule : elle reçoit les images publiques, sans recevoir les fiches, notes, quêtes,
+réserves de monstres ni sauvegardes de campagne. Elle fonctionne aussi en ouvrant directement `index.html`.
+
+![Nemaï sur l’écran des joueurs](docs/images/ecran-monde.png)
+
+1. Ouvre la fenêtre une fois, déplace-la sur le second écran et clique sur **Plein écran**.
+2. Dans **Monde**, les joueurs voient le parchemin, les lieux et les héros. Les monstres du monde, quêtes,
+   étapes prévues, favoris et indications de batailles préparées restent réservés au MJ.
+3. En passant dans **Jouer la carte**, notamment depuis une bataille liée à un lieu, la même fenêtre affiche
+   le combat. Retourne dans **Monde** pour réafficher le voyage. Les déplacements, dégâts et animations visibles sont actualisés.
+4. Coche **Masquer l’écran** pour afficher un rideau pendant une préparation. Les onglets **Éditeur**,
+   **Personnages** et **Outils MJ** suspendent la dernière image publique ; ils ne projettent pas les modifications en cours.
+
+Les joueurs disposent d’un zoom à la molette, du déplacement de la vue et de **Recentrer (F)**, indépendants de la caméra MJ.
+Recharger la fenêtre joueur rétablit la connexion ; après un rechargement du grimoire, reclique sur son bouton d’ouverture.
+En cas de perte de connexion, la projection masque la dernière image après quelques secondes.
+Les sons restent joués par la fenêtre MJ. Il s’agit d’une projection locale, pas d’un accès multijoueur à distance.
+Les noms et lieux imprimés dans l’illustration de Nemaï sont publics et restent visibles.
 
 <div align="center">
 
@@ -919,7 +982,7 @@ le combat conserve les figurines de toutes les vagues déjà déclenchées.
 ## 🔊 Sons
 
 Effets synthétisés par le navigateur (aucun fichier audio) : coups, critiques, ratés, sorts, soins, flèches,
-bénédiction, dés, début de tour, KO, mort, victoire, montée de niveau. Ils sont aussi joués sur l'écran des joueurs.
+bénédiction, dés, début de tour, KO, mort, victoire, montée de niveau. Ils sont joués depuis la fenêtre MJ.
 Bouton **🔊** en haut à droite pour les couper. Le navigateur n'active le son qu'après un premier clic dans la page.
 
 ---
@@ -1055,15 +1118,16 @@ Le navigateur a bloqué la fenêtre : autorise les pop-ups pour cette page (icô
 <details>
 <summary><b>L'écran des joueurs ne se met pas à jour.</b></summary>
 
-Il se synchronise par le stockage du navigateur. Ouvre les deux fenêtres dans le **même navigateur** ; si besoin,
-sers l'appli avec un serveur local, ce qui rend la synchronisation plus fiable.
+Garde le grimoire MJ ouvert dans le **même navigateur** et utilise son bouton **Ouvrir l’écran des joueurs**.
+Après avoir rechargé le grimoire, reclique sur ce bouton pour rétablir la liaison. Vérifie aussi que **Masquer l’écran**
+est décoché et que le MJ se trouve dans **Monde** ou **Jouer la carte** : les autres onglets suspendent la projection.
 </details>
 
 <details>
 <summary><b>Je n'entends aucun son.</b></summary>
 
 Vérifie le bouton **🔊** en haut à droite, et clique une fois dans la page : le navigateur n'active le son qu'après
-une interaction. Sur l'écran des joueurs, clique aussi une fois dans la fenêtre.
+une interaction. Les sons viennent de la fenêtre MJ ; la fenêtre de projection reste silencieuse.
 </details>
 
 <details>
@@ -1136,13 +1200,16 @@ js/rules.js      Règles : caractéristiques, races, classes, états, dés, tabl
 js/engine.js     Moteur de règles : mode MJ / règles strictes, hasard à graine, économie d'actions, sauvegardes,
                  types de dégâts, abri, durée des états, concentration, attaques d'opportunité
 js/render.js     Rendu de la carte en 2D semi-3D
+js/decor.js      Catalogue et dessins des 24 petits accessoires
 js/editor.js     Ajout / suppression, pinceau, annulation
 js/mapmodules.js Salles, chemins, rivières et dispersion de décors avec aperçu et annulation
 js/presets.js    Presets de carte générés
 js/play.js       Onglet Jouer : figurines, rendu, souris, panneau de la figurine
 js/combat.js     Initiative, PV, attaques, états, jets contre la mort, journal, dés
 js/chars.js      Onglet Personnages : fiches et progression
-js/fog.js        Brouillard de guerre, marqueurs secrets, écran des joueurs
+js/fog.js        Brouillard de guerre, marqueurs secrets et aperçu joueur
+js/player-screen.js Projection publique du monde et du combat depuis le MJ
+players.html / js/player-view.js / css/players.css  Fenêtre de projection en lecture seule
 js/sfx.js        Effets sonores synthétisés
 js/actions.js    Capacités et sorts, actions standard, ciblage
 js/items.js      Objets, inventaire, marché
@@ -1152,6 +1219,7 @@ js/ai.js         IA des héros et des monstres (rôles, traits, moral), mode spe
 js/sim.js        Simulateur de combat et rapport
 js/gmtools.js    Onglet Outils MJ : générateurs, notes, aide-mémoire
 js/worldgen.js   Génération du monde : relief, rivières, climat, biomes, royaumes, lieux
+js/world-nemai.js Illustration de référence, lieux fixes et terrain de voyage de Nemaï
 js/world.js      Onglet Monde : affichage, voyages, lieux, cartes liées, campagne
 js/campaign.js   Événements de voyage, vivres, quêtes, réputation, marché, repos
 js/equipment-ui.js Fiches d’équipement, objets personnalisés, coffre et commerce
@@ -1169,6 +1237,7 @@ js/main.js       Démarrage
 | --- | --- |
 | Un sol | `FLOORS` (`js/config.js`) |
 | Un élément | `OBJECTS` (`js/config.js`) et, si nouvelle forme, un `case` dans `drawObj` (`js/render.js`) |
+| Un petit accessoire | `SMALL_DECOR` et son dessin dans `js/decor.js` ; forme `detail`, sans obstacle |
 | Une figurine | `SPRITES` (`js/sprites.js`, dessin 16×16, une lettre par couleur), sa section dans `data/caracteristiques.txt`, son animation dans `ATTACKS` (`js/anims.js`) |
 | Une race / une classe | `RACES` / `CLASSES` (`js/rules.js`) ; capacités de la classe dans `CLASS_ACTIONS` (`js/actions.js`) |
 | Une capacité / un sort | `ACTIONS` (`js/actions.js`) : coût, récupération, niveau requis, type de dégâts |
@@ -1205,6 +1274,11 @@ les exports/imports de campagne v3/v4, le rechargement et l'affichage à 1440, 1
 les renforts en combat, l'annulation, les sauvegardes et trois simulations isolées.
 `py scripts/check_expedition.py` vérifie les provisions, les dés de vie, la synchronisation des PV, les allures,
 la sauvegarde des voyages, le rechargement et l’affichage du camp jusqu’à 390 pixels.
+`py scripts/check_nemai.py` vérifie les lieux de Nemaï, les terrains, l’échelle, les voyages, les cartes liées,
+le retour au monde précédent, les exports/imports, le rechargement et l’ouverture directe sans serveur.
+`py scripts/check_players_decor.py` vérifie les 24 accessoires, les dispersions, la rotation et les sauvegardes,
+ainsi que deux vraies fenêtres MJ/joueur : informations masquées, animations dans le brouillard, changement de scène,
+rideau, préparation suspendue, lecture seule, reconnexion et ouverture locale sans serveur.
 
 ---
 

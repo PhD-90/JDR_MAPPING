@@ -8,6 +8,7 @@ let attackMode = false;   // en attente du choix d'une cible
 
 function setMode(m) {
   mode = m;
+  if(typeof playerSceneModeChanged==='function')playerSceneModeChanged(m);
   ['play', 'edit', 'chars', 'world', 'gm'].forEach(k => document.body.classList.toggle('mode-' + k, m === k));
   document.querySelectorAll('[data-mode]').forEach(b => {
     b.classList.toggle('on', b.dataset.mode === m);
@@ -116,7 +117,7 @@ function drawUnit(c, u, ui, ghost = false) {
     c.strokeStyle = `rgba(255,210,60,${0.6 + 0.4 * pulse})`; c.lineWidth = 4;
     c.beginPath(); c.ellipse(cx, fy, sw*0.56, sw*0.23, 0, 0, Math.PI*2); c.stroke();
   }
-  if (ui && u === playSel) {
+  if (ui && u === playSel && !playerSight()) {
     c.strokeStyle = '#e0a52b'; c.lineWidth = 3; c.setLineDash([5, 3]);
     c.beginPath(); c.ellipse(cx, fy, sw*0.5, sw*0.2, 0, 0, Math.PI*2); c.stroke();
     c.setLineDash([]);

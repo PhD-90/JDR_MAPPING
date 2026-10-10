@@ -109,7 +109,8 @@ function planMapModule(g) {
     if (rank < o.density) candidates.push({ x, y, rank });
   }
   candidates.sort((a, b) => a.rank - b.rank);
-  const types = o.theme === 'rocks' ? ['rock'] : o.theme === 'supplies' ? ['crate', 'barrel'] : ['tree', 'tree', 'tree', 'rock'];
+  const themes={rocks:['rock'],supplies:['crate','barrel'],undergrowth:['grassTuft','flowers','mushrooms','fern','bush','pebbles'],camp:['bedroll','logs','sacks','lantern'],dungeon:['bones','chains','scrolls','candles','urn']};
+  const types = themes[o.theme] || ['tree','tree','tree','rock'];
   for (const { x, y } of candidates.slice(0, 250)) {
     const r = hash(y + g.seed, x + 73), type = types[Math.floor(r * types.length)];
     plan.objects.push(object(type, x, y, { color:shade(OBJECTS[type].c, 0.9 + r * 0.2) }));

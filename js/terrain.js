@@ -15,10 +15,15 @@ function maxLevelUnder(x, y, w, h) {
   for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) m = Math.max(m, levelAt(i, j));
   return m;
 }
-const objLift = o => maxLevelUnder(o.x, o.y, o.w, o.h) * LH();
+const objLift = o => {
+  if(OBJECTS[o.type].shape!=='detail')return maxLevelUnder(o.x,o.y,o.w,o.h)*LH();
+  let top=0;
+  for(let y=o.y;y<o.y+o.h;y++)for(let x=o.x;x<o.x+o.w;x++)top=Math.max(top,surfaceLevel(x,y));
+  return top*LH();
+};
 
 // Hauteur de la surface sur laquelle on se tient : terrain ou dessus d'un élément (caisse, mur, table...)
-const NOT_STANDABLE = ['tree', 'token'];
+const NOT_STANDABLE = ['tree', 'token', 'detail'];
 function surfaceLevel(x, y) {
   let top = levelAt(x, y);
   for (const o of map.objects) {

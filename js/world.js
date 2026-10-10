@@ -11,7 +11,8 @@ let wAddType = null;
 const wcv = $('wcv'), wctx = wcv.getContext('2d');
 
 // ---------- Création / chargement ----------
-function newWorld(seed = (Math.random() * 1e6) | 0, style = 'continent') {
+function newWorld(seed = (Math.random() * 1e6) | 0, style = 'nemai') {
+  if(style==='nemai'){world=nemaiWorld();WT=null;buildWorldCache();return world;}
   const w = { v: 1, seed, style, W: 360, H: 240, scale: 8, day: 1, name: '', locations: [], regions: [], pos: {}, journal: [],
               opts: { regions: true, rivers: true, symbols: true, labels: true, parchment: true } };
   const t = genTerrain(w), p = genPlaces(w, t);
@@ -35,7 +36,8 @@ function saveWorld(now = false) {
 
 // Recalcule terrain, images et éléments de décor
 function buildWorldCache(t = null) {
-  t ||= genTerrain(world);
+  if(isNemai()){world.W=NEMAI.W;world.H=NEMAI.H;}
+  t ||= isNemai()?nemaiTerrain():genTerrain(world);
   const { W, H } = t, N = W * H;
   const region = assignRegions(t, world.regions);
   // image du terrain avec ombrage du relief
@@ -202,33 +204,35 @@ function worldAnimTick() {
 let wraf = 0;
 function wredraw() { if (!wraf) wraf = requestAnimationFrame(() => { wraf = 0; drawWorld(); }); }
 
-function drawWorld() {
-  if (mode !== 'world' || !WT) return;
-  const c = wctx, z = wcam.z, o = world.opts, { W, H } = WT.t;
+function drawWorld(output=null, publicView=previewWorldPlayers, background=true) {
+  if ((!output && mode !== 'world') || !WT) return;
+  const c = output ? output.getContext('2d') : wctx, z = wcam.z, o = world.opts, { W, H } = WT.t;
+  const dpr = output ? 1 : window.devicePixelRatio || 1, canvas = output || wcv;
   c.setTransform(1, 0, 0, 1, 0, 0);
-  c.clearRect(0, 0, wcv.width, wcv.height);
+  c.clearRect(0, 0, canvas.width, canvas.height);
   c.setTransform(z * dpr, 0, 0, z * dpr, wcam.x * dpr, wcam.y * dpr);
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
   c.save(); c.shadowColor = '#0008'; c.shadowBlur = 18; c.shadowOffsetY = 6;
   c.fillStyle = '#b99b68'; c.fillRect(-6, -6, W * WCELL + 12, H * WCELL + 12); c.restore();
-  c.drawImage(WT.img, 0, 0, W * WCELL, H * WCELL);
+  if(background)c.drawImage(worldBackground(), 0, 0, W * WCELL, H * WCELL);
+  else c.clearRect(0, 0, W * WCELL, H * WCELL);
   if (o.regions) { c.drawImage(WT.tint, 0, 0, W * WCELL, H * WCELL); }
 
   // rivières
-  if (o.rivers) {
+  if (o.rivers && !isNemai()) {
     c.strokeStyle = o.parchment ? '#6f8f9a' : '#4a82ba'; c.lineCap = 'round'; c.lineJoin = 'round';
     for (const r of WT.rivers) for (let k = 0; k < r.length - 1; k++) {
       c.lineWidth = (0.35 + Math.sqrt(r[k].f) * 0.32) * WCELL;
       c.beginPath(); c.moveTo(r[k].x, r[k].y); c.lineTo(r[k + 1].x, r[k + 1].y); c.stroke();
     }
   }
-  if (o.symbols) drawWorldSymbols(c, o.parchment);
+  if (o.symbols && !isNemai()) drawWorldSymbols(c, o.parchment);
   if (o.regions) {
     c.strokeStyle = o.parchment ? 'rgba(110,40,30,.65)' : 'rgba(60,20,20,.55)'; c.lineWidth = Math.max(1.2, 2 / z);
     c.stroke(WT.borders);
   }
   // noms des royaumes
-  if (o.labels && o.regions) {
+  if (o.labels && o.regions && !isNemai()) {
     c.textAlign = 'center'; c.textBaseline = 'middle';
     WT.labels.forEach(l => {
       const reg = world.regions[l.r]; if (!reg) return;
@@ -243,24 +247,25 @@ function drawWorld() {
 
   // trajet en cours de préparation (personnages sélectionnés -> curseur)
   const sel = selectedSheets();
-  if (sel.length && whover && !wdrag && !wanim && !world.route?.points.length) {
+  if (!publicView && sel.length && whover && !wdrag && !wanim && !world.route?.points.length) {
     const p = world.pos[sel[0].id];
     c.setLineDash([8 / z, 6 / z]); c.strokeStyle = 'rgba(255,230,120,.9)'; c.lineWidth = 2.5 / z;
     c.beginPath(); c.moveTo(p.x * WCELL, p.y * WCELL); c.lineTo(whover.x * WCELL, whover.y * WCELL); c.stroke(); c.setLineDash([]);
   }
 
-  drawWorldRoutes(c);
+  if(!publicView)drawWorldRoutes(c);
   // lieux
   const showAll = z > 1.1;
   c.textAlign = 'center';
   world.locations.forEach(l => {
+    if(isNemai()){drawNemaiLocation(c,l,publicView);return;}
     const T = LOC_TYPES[l.type] || LOC_TYPES.lieu, x = l.x * WCELL, y = l.y * WCELL, s = T.size / z;
-    const isSel = wsel.loc === l;
+    const isSel = !publicView && wsel.loc === l;
     if (isSel) { c.fillStyle = 'rgba(255,210,60,.35)'; c.beginPath(); c.arc(x, y, s * 0.95, 0, Math.PI * 2); c.fill(); }
     c.font = `${s}px "Segoe UI Emoji", "Apple Color Emoji", system-ui`; c.textBaseline = 'middle';
     c.fillText(T.icon, x, y);
-    if (l.battle) { c.font = `${s * 0.55}px system-ui`; c.fillText('⚔', x + s * 0.55, y - s * 0.45); }
-    if(l.favorite||l.visited){c.font=`bold ${10/z}px system-ui`;c.fillStyle=l.favorite?'#a44a1d':'#326b40';c.fillText(l.favorite?'★':'✓',x-s*.65,y);}
+    if (!publicView && l.battle) { c.font = `${s * 0.55}px system-ui`; c.fillText('⚔', x + s * 0.55, y - s * 0.45); }
+    if(!publicView&&(l.favorite||l.visited)){c.font=`bold ${10/z}px system-ui`;c.fillStyle=l.favorite?'#a44a1d':'#326b40';c.fillText(l.favorite?'★':'✓',x-s*.65,y);}
     const major = ['capitale', 'ville', 'port'].includes(l.type);
     if (o.labels && (major || showAll || isSel)) {
       const fs = (l.type === 'capitale' ? 14 : major ? 12 : 11) / z;
@@ -271,14 +276,15 @@ function drawWorld() {
     }
   });
 
-  drawQuestMarks(c);
+  if(!publicView)drawQuestMarks(c);
 
   // personnages
-  ensurePositions();
-  const tokenPositions=worldTokenPositions();
-  sheets.forEach(s => {
+  if(!publicView)ensurePositions();
+  const visibleSheets=publicView?sheets.filter(s=>s.camp!=='monster'):sheets;
+  const tokenPositions=worldTokenPositions(visibleSheets);
+  visibleSheets.forEach(s => {
     const p = worldVisualPosition(s.id); if (!p) return;
-    const {x,y}=tokenPositions.get(s.id), sz = 30 / z, on = wsel.ids.has(s.id);
+    const {x,y}=tokenPositions.get(s.id), sz = 30 / z, on = !publicView && wsel.ids.has(s.id);
     if(Math.hypot(x-p.x*WCELL,y-p.y*WCELL)>5/z){c.strokeStyle='#644c3680';c.lineWidth=1/z;c.beginPath();c.moveTo(p.x*WCELL,p.y*WCELL);c.lineTo(x,y);c.stroke();}
     c.fillStyle = 'rgba(0,0,0,.4)'; c.beginPath(); c.ellipse(x, y + sz * 0.05, sz * 0.38, sz * 0.14, 0, 0, Math.PI * 2); c.fill();
     c.strokeStyle = on ? '#ffd23c' : s.camp === 'monster' ? '#ff4d4d' : '#4da3ff'; c.lineWidth = (on ? 3.5 : 2.2) / z;
@@ -293,18 +299,20 @@ function drawWorld() {
 
   // boussole et échelle (repère écran)
   c.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const vw = wcv.clientWidth, vh = wcv.clientHeight;
+  const vw = output ? output.width : wcv.clientWidth, vh = output ? output.height : wcv.clientHeight;
   const kmPx = WCELL * z / world.scale, nice = [50, 100, 200, 250, 500, 1000].find(k => k * kmPx > 80) || 1000;
   c.fillStyle = 'rgba(0,0,0,.55)'; c.fillRect(12, vh - 40, nice * kmPx + 20, 28);
   c.fillStyle = '#fff'; c.fillRect(22, vh - 22, nice * kmPx, 4);
   c.font = '11px system-ui'; c.textAlign = 'left'; c.textBaseline = 'bottom'; c.fillText(`${nice} km`, 22, vh - 24);
-  c.save(); c.translate(vw - 40, 44);
-  c.fillStyle = 'rgba(0,0,0,.45)'; c.beginPath(); c.arc(0, 0, 24, 0, Math.PI * 2); c.fill();
-  c.fillStyle = '#e8d8a8'; c.beginPath(); c.moveTo(0, -20); c.lineTo(6, 0); c.lineTo(-6, 0); c.closePath(); c.fill();
-  c.fillStyle = '#8a7a5a'; c.beginPath(); c.moveTo(0, 20); c.lineTo(6, 0); c.lineTo(-6, 0); c.closePath(); c.fill();
-  c.fillStyle = '#fff'; c.font = 'bold 10px system-ui'; c.textAlign = 'center'; c.fillText('N', 0, -22);
-  c.restore();
-  drawAtlasMini();
+  if(!isNemai()){
+    c.save(); c.translate(vw - 40, 44);
+    c.fillStyle = 'rgba(0,0,0,.45)'; c.beginPath(); c.arc(0, 0, 24, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#e8d8a8'; c.beginPath(); c.moveTo(0, -20); c.lineTo(6, 0); c.lineTo(-6, 0); c.closePath(); c.fill();
+    c.fillStyle = '#8a7a5a'; c.beginPath(); c.moveTo(0, 20); c.lineTo(6, 0); c.lineTo(-6, 0); c.closePath(); c.fill();
+    c.fillStyle = '#fff'; c.font = 'bold 10px system-ui'; c.textAlign = 'center'; c.fillText('N', 0, -22);
+    c.restore();
+  }
+  if(!output)drawAtlasMini();
 }
 
 function drawWorldSymbols(c, parch) {
@@ -362,6 +370,7 @@ function hitToken(p) {
 }
 function hitLoc(p) {
   const r = 12 / wcam.z / WCELL;
+  if(isNemai())return hitNemaiLocation(p);
   return world.locations.find(l => Math.hypot(l.x - p.x, l.y - p.y) < r) || null;
 }
 
@@ -390,7 +399,7 @@ wcv.addEventListener('mousedown', e => {
     renderWorldPanels(); wredraw(); return;
   }
   const loc = hitLoc(p);
-  if (loc) { wsel.loc = loc; wdrag = { mode: 'loc', loc, start: p, ox: loc.x, oy: loc.y, moved: false }; renderWorldPanels(); wredraw(); return; }
+  if (loc) { wsel.loc = loc; wdrag = isNemai()&&loc.reference?null:{ mode: 'loc', loc, start: p, ox: loc.x, oy: loc.y, moved: false }; renderWorldPanels(); wredraw(); return; }
   wdrag = { mode: 'pan', sx: e.clientX, sy: e.clientY, cx: wcam.x, cy: wcam.y, click: true };
 });
 window.addEventListener('mousemove', e => {
@@ -433,7 +442,8 @@ function updateWorldTip(e) {
   const tip = $('worldTip'), p = wToCell(e);
   if (p.x < 0 || p.y < 0 || p.x >= world.W || p.y >= world.H) { tip.classList.add('hidden'); return; }
   const i = wIdx(p.x, p.y), b = BIOMES[WT.t.biome[i]], reg = regionAt(p.x, p.y), h = WT.t.h[i];
-  let html = `<b>${b.name}</b>` + (reg && !WT.t.water[i] ? ` · ${escapeHtml(reg.name)}` : '') +
+  const place=hitLoc(p);
+  let html = (place?`<b>${escapeHtml(place.name)}</b><br>`:'')+`<b>${b.name}</b>` + (reg && !WT.t.water[i] ? ` · ${escapeHtml(reg.name)}` : '') +
     (WT.t.water[i] ? '' : `<br><span class="muted">Altitude ≈ ${Math.round(Math.max(0, h) * 4200)} m · climat ${tempLabel(WT.t.temp[i])}</span>`);
   const sel = selectedSheets();
   if (sel.length && !wdrag) {
@@ -516,6 +526,7 @@ function renderWorldPanels() {
   const o = world.opts;
   $('wName').value = world.name; $('wDay').textContent = world.day;
   $('wSeed').value = world.seed; $('wStyle').value = world.style;
+  updateNemaiControls();
   ['regions', 'rivers', 'symbols', 'labels', 'parchment'].forEach(k => { $('wo_' + k).checked = !!o[k]; });
   renderLocList();
   // panneau de droite
@@ -630,7 +641,7 @@ function worldInfoPanel() {
       wsel = { loc: null, ids: new Set([s.id]) }; const p = world.pos[s.id]; centerOn(p.x, p.y); renderWorldPanels(); } } }, spriteIcon(s.sprite, 28), s.name))),
     h('button', { className: 'wide-btn', textContent: '👥 Sélectionner tout le groupe', on: { click: () => {
       wsel = { loc: null, ids: new Set(heroes.map(s => s.id)) }; renderWorldPanels(); wredraw(); } } }),
-    h('h2', { textContent: 'Royaumes' }),
+    h('h2', { textContent: isNemai()?'Territoires de Nemaï':'Royaumes' }),
     h('div', {}, world.regions.map((r, i) => h('div', { className: 'loc-row reg-row', on: { click: () => centerOn(r.x, r.y, 1.4) } },
       h('span', { className: 'swatch', style: `background:hsl(${r.hue},55%,45%)` }), h('span', { className: 'ellip', textContent: r.name }), repControls(r)))),
     questPanel(),
@@ -646,12 +657,14 @@ $('wNext').onclick = () => { world.day++; world.journal.unshift({ day: world.day
 $('wRest').onclick = () => {openExpedition();$('expeditionLong').focus();};
 $('wShort').onclick = () => {openExpedition();$('expeditionShort').focus();};
 $('wGen').onclick = () => {
+  if($('wStyle').value==='nemai'){switchNemaiWorld();return;}
   if (!confirm('Générer un nouveau monde ? Les lieux, les cartes de combat liées et le journal de voyage seront remplacés (les fiches sont conservées).')) return;
-  const keepScale = world.scale;
+  const keepScale = isNemai()?8:world.scale;
   world = newWorld((Math.random() * 1e6) | 0, $('wStyle').value); world.scale = keepScale;
   wsel = { loc: null, ids: new Set() }; ensurePositions(); saveWorld(true); renderWorldPanels(); fitWorld();
 };
 $('wRegen').onclick = () => {
+  if($('wStyle').value==='nemai')return;
   const seed = Math.floor(+$('wSeed').value) || 1;
   if (!confirm(`Regénérer le monde avec la graine ${seed} et le style choisi ? Les lieux seront remplacés.`)) return;
   world = newWorld(seed, $('wStyle').value);
@@ -665,6 +678,11 @@ $('wAddKind').onchange = () => { if (wAddType) setAddType($('wAddKind').value); 
 $('wSearch').addEventListener('input', renderLocList);
 $('wFilter').onchange = renderLocList;
 $('wFit').onclick = fitWorld;
+$('btnNemai').onclick=()=>switchNemaiWorld();
+$('btnPreviousWorld').onclick=()=>switchNemaiWorld(true);
+$('wStyle').onchange=()=>{
+  const fixed=$('wStyle').value==='nemai';$('wSeed').disabled=fixed;$('wRegen').disabled=fixed;$('wGen').disabled=fixed&&isNemai();
+};
 
 // Légende des biomes et types de lieux
 (function buildLegend() {

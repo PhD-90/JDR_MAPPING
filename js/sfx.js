@@ -1,5 +1,5 @@
 // Effets sonores synthétisés (Web Audio, aucun fichier) : attaques, coups, soins, sorts, dés, tours, victoire...
-// Ils sont aussi joués sur l'écran des joueurs. Bouton 🔊 dans la barre d'onglets pour couper le son.
+// Son depuis le grimoire MJ ; bouton 🔊 dans la barre d'onglets pour le couper.
 
 let soundOn = true, actx = null;
 try { soundOn = localStorage.getItem('jdr-sound') !== '0'; } catch (e) {}

@@ -37,6 +37,8 @@
 .atlas-toolbar button{padding:6px 9px;font-size:12px;}.atlas-toolbar span{color:#d5bc87;font-size:11px;padding:0 5px;}
 #atlasMini {position:absolute;right:14px;bottom:48px;width:180px;height:120px;border:2px solid #a78243;background:#d4bb88;box-shadow:0 3px 15px #0007;border-radius:4px;cursor:crosshair;}
 #atlasMini:focus-visible {outline:3px solid #e4bf70;outline-offset:3px;}
+body.mode-world.world-map-focus #worldLeft,body.mode-world.world-map-focus #worldRight{display:none}
+body.mode-world.world-map-focus #atlasMini{display:none}
 .atlas-panel {margin:10px 0 14px;border-top:1px solid #94713e55;border-bottom:1px solid #94713e55;padding:10px 0;}
 .atlas-party {display:flex;flex-direction:column;gap:6px;}.atlas-party b{color:#e2c493;font-family:Georgia,serif;}.atlas-party span{font-size:11px;color:#bda780;}
 .atlas-filters {display:flex;gap:5px;}.atlas-filters select{min-width:0;flex:1;font-size:11px;}

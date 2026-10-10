@@ -198,6 +198,32 @@ def caption(image, title, subtitle, number, total):
     return out
 
 
+def player_screenshot(cdp):
+    """Capture the actual passive player window, keeping the MJ scene alive."""
+    cdp.call('Runtime.evaluate', expression='openPlayerScreen()', userGesture=True)
+    port=cdp.sock.getpeername()[1]
+    viewer=None
+    try:
+        for _ in range(80):
+            pages=json.load(urllib.request.urlopen(f'http://127.0.0.1:{port}/json/list'))
+            page=next((p for p in pages if 'players.html' in p['url']), None)
+            if page:
+                viewer=CDP(page['webSocketDebuggerUrl']);break
+            time.sleep(.1)
+        if not viewer:
+            raise TimeoutError('Player window did not open')
+        viewer.call('Page.enable')
+        viewer.call('Emulation.setDeviceMetricsOverride',width=WIDTH,height=HEIGHT,deviceScaleFactor=1,mobile=False)
+        for _ in range(80):
+            if viewer.js("typeof picture!=='undefined' && !!picture && curtain.hidden"):
+                return viewer.screenshot()
+            time.sleep(.1)
+        raise TimeoutError('Player window did not receive its scene')
+    finally:
+        if viewer:
+            viewer.call('Page.close');viewer.sock.close()
+
+
 def capture_all(cdp, base, only=None):
     source = (ROOT / 'scripts/readme-scenes.js').read_text(encoding='utf-8')
     cdp.js(source)
@@ -210,18 +236,10 @@ def capture_all(cdp, base, only=None):
         if only and only != name:
             continue
         print(f'Capture {i + 1}/{len(scenes)}: {name}', flush=True)
-        if name == 'ecran-joueurs':
-            cdp.call('Page.navigate', url=base + '?joueurs')
-            time.sleep(.8)
-            cdp.js(source)
-        elif cdp.js("typeof PLAYER_VIEW!=='undefined' && PLAYER_VIEW"):
-            cdp.call('Page.navigate', url=base)
-            time.sleep(.8)
-            cdp.js(source)
         cdp.js(f'prepareMediaScene({json.dumps(name)})')
         time.sleep(.15)
         cdp.js('mediaFreeze()')
-        shot = cdp.screenshot()
+        shot = player_screenshot(cdp) if name in ('ecran-joueurs','ecran-monde') else cdp.screenshot()
         shot.save(IMAGES / (name + '.png'), optimize=True)
         for crop in cdp.js('mediaCrops()'):
             box = tuple(round(crop[k]) for k in ('left', 'top', 'right', 'bottom'))

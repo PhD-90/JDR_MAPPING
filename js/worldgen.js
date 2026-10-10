@@ -47,6 +47,7 @@ const LOC_TYPES = {
 };
 
 const WORLD_STYLES = {
+  nemai:     { name:'Nemaï · carte de référence' },
   continent: { name:'Continent',      fall:0.55, land:0.36, freq:1 },
   archipel:  { name:'Archipel',       fall:0.22, land:0.24, freq:1.9 },
   pangee:    { name:'Grand continent', fall:0.8,  land:0.5,  freq:0.75 },

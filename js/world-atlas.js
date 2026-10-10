@@ -1,5 +1,6 @@
 // Atlas : itinéraire persistant, favoris, suivi du groupe et navigation à la mini-carte.
 let atlasSort='type',atlasStatus='',atlasFollow=false;
+function toggleWorldPanels(){const expanded=document.body.classList.toggle('world-map-focus');$('atlasExpand').textContent=expanded?'☷ Panneaux':'⛶ Carte seule';$('atlasExpand').setAttribute('aria-pressed',String(expanded));resizeWorld();fitWorld();}
 function atlasParty() {const selected=selectedSheets().filter(s=>!s.dead);return selected.length?selected:sheets.filter(s=>s.camp!=='monster'&&!s.dead);}
 function atlasCenter(list=atlasParty()) {
   const points=list.map(s=>world.pos[s.id]).filter(Boolean);if(!points.length)return {x:world.W/2,y:world.H/2};
@@ -48,7 +49,7 @@ function buildWorldAtlas() {
   if($('atlasToolbar'))return;
   $('worldMain').append(h('div',{id:'atlasToolbar',className:'atlas-toolbar','aria-label':'Navigation de l’atlas'},
     gearButton('−',()=>atlasZoom(1/1.3),{title:'Dézoomer','aria-label':'Dézoomer'}),gearButton('+',()=>atlasZoom(1.3),{title:'Zoomer','aria-label':'Zoomer'}),
-    gearButton('⌖ Groupe',atlasGroup,{title:'Sélectionner et centrer les aventuriers (P)'}),gearButton('◫ Monde',fitWorld,{title:'Voir tout le monde (F)'}),h('span',{id:'atlasZoom'})),
+    gearButton('⌖ Groupe',atlasGroup,{title:'Sélectionner et centrer les aventuriers (P)'}),gearButton('◫ Monde',fitWorld,{title:'Voir tout le monde (F)'}),gearButton('⛶ Carte seule',toggleWorldPanels,{id:'atlasExpand','aria-pressed':'false',title:'Agrandir la carte en masquant les panneaux latéraux'}),h('span',{id:'atlasZoom'})),
     h('canvas',{id:'atlasMini',width:220,height:147,tabIndex:0,role:'img','aria-label':'Mini-carte interactive : clic pour centrer, flèches pour déplacer la vue'}));
   const nav=h('section',{id:'atlasPanel',className:'atlas-panel'});$('wLocList').before(nav);
   const controls=h('div',{className:'atlas-filters'},h('select',{id:'atlasSort','aria-label':'Trier les lieux',on:{change:e=>{atlasSort=e.target.value;renderLocList();}}},gearOption('type','Par type'),gearOption('name','Par nom'),gearOption('distance','Les plus proches')),
@@ -92,17 +93,20 @@ function drawWorldRoutes(c) {
   info.legs.forEach(({p},i)=>{const x=p.x*WCELL,y=p.y*WCELL-17/z;c.fillStyle='#732d24';c.beginPath();c.arc(x,y,9/z,0,Math.PI*2);c.fill();c.fillStyle='#fff0cf';c.font=`bold ${11/z}px Georgia`;c.textAlign='center';c.textBaseline='middle';c.fillText(i+1,x,y);});c.restore();
 }
 function drawAtlasMini() {
-  const mini=$('atlasMini');if(!mini||!WT||!world)return;const c=mini.getContext('2d'),sx=mini.width/world.W,sy=mini.height/world.H;
-  c.clearRect(0,0,mini.width,mini.height);c.drawImage(WT.img,0,0,mini.width,mini.height);
+  const mini=$('atlasMini');if(!mini||!WT||!world)return;const c=mini.getContext('2d');
+  const height=Math.round(mini.width*world.H/world.W);if(mini.height!==height)mini.height=height;
+  const sx=mini.width/world.W,sy=mini.height/world.H;
+  mini.style.height='auto';mini.style.aspectRatio=`${world.W} / ${world.H}`;
+  c.clearRect(0,0,mini.width,mini.height);c.drawImage(worldBackground(),0,0,mini.width,mini.height);
   world.locations.filter(l=>l.favorite).forEach(l=>{c.fillStyle='#a73224';c.fillRect(l.x*sx-2,l.y*sy-2,4,4);});
   sheets.filter(s=>s.camp!=='monster').forEach(s=>{const p=world.pos[s.id];if(!p)return;c.fillStyle='#fff1b0';c.strokeStyle='#382217';c.beginPath();c.arc(p.x*sx,p.y*sy,3,0,Math.PI*2);c.fill();c.stroke();});
   c.strokeStyle='#842e23';c.lineWidth=2;c.strokeRect(-wcam.x/(wcam.z*WCELL)*sx,-wcam.y/(wcam.z*WCELL)*sy,wcv.clientWidth/(wcam.z*WCELL)*sx,wcv.clientHeight/(wcam.z*WCELL)*sy);
   $('atlasZoom').textContent=Math.round(wcam.z*100)+' %';
 }
-function worldTokenPositions() {
+function worldTokenPositions(list=sheets) {
   const placed=new Map(),z=wcam.z;
   // Spread visually overlapping pawns without changing campaign coordinates.
-  for(const s of sheets){const p=worldVisualPosition(s.id);if(!p)continue;
+  for(const s of list){const p=worldVisualPosition(s.id);if(!p)continue;
     let x=p.x*WCELL,y=p.y*WCELL;
     for(let step=0;step<80;step++){
       if(![...placed.values()].some(q=>Math.hypot((q.x-x)*z,(q.y-y)*z)<30))break;
